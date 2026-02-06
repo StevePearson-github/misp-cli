@@ -520,7 +520,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-For issues and feature requests, please use the [GitHub Issues](https://github.com/your-org/misp-cli/issues) page.
+For issues and feature requests, please use the [GitHub Issues](https://github.com/StevePearson-github/misp-cli/issues) page.
 
 ---
 

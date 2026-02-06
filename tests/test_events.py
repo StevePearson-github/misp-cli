@@ -18,14 +18,15 @@ class TestEventsCommands:
         mock_config.output_format = "json"
         
         mock_client = MagicMock()
-        mock_client.get.return_value = {
+        mock_client.get_sync.return_value = {
             "events": [{"id": 1, "info": "Test Event"}]
         }
         
-        with patch("misp_cli.cli.commands.events.MISPConfig") as mock_config_class:
-            with patch("misp_cli.cli.commands.events.MISPCLient") as mock_client_class:
-                mock_config_class.from_file.return_value = mock_config
-                mock_client_class.return_value = mock_client
+        mock_app = MagicMock()
+        mock_app.profile = mock_config
+        mock_app.client = mock_client
+        
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app):
                 
                 # Test that the client is called correctly
                 events_app.callback()  # Initialize
@@ -34,8 +35,8 @@ class TestEventsCommands:
                 from misp_cli.cli.commands.events import list_events
                 list_events(limit=50, page=1, search=None, org=None, json_output=True, table_output=False)
                 
-                mock_client.get.assert_called_once()
-                call_args = mock_client.get.call_args
+                mock_client.get_sync.assert_called_once()
+                call_args = mock_client.get_sync.call_args
                 assert call_args[0][0] == "/events/index"
                 assert call_args[1]["params"]["limit"] == 50
 
@@ -48,19 +49,20 @@ class TestEventsCommands:
         mock_config.output_format = "json"
         
         mock_client = MagicMock()
-        mock_client.get.return_value = {
+        mock_client.get_sync.return_value = {
             "Event": {"id": 1, "info": "Test Event"}
         }
         
-        with patch("misp_cli.cli.commands.events.MISPConfig") as mock_config_class:
-            with patch("misp_cli.cli.commands.events.MISPCLient") as mock_client_class:
-                mock_config_class.from_file.return_value = mock_config
-                mock_client_class.return_value = mock_client
+        mock_app = MagicMock()
+        mock_app.profile = mock_config
+        mock_app.client = mock_client
+        
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app):
                 
                 from misp_cli.cli.commands.events import show_event
                 show_event(event_id=1, context=False, json_output=True, table_output=False)
                 
-                mock_client.get.assert_called_once_with("/events/view/1", params={})
+                mock_client.get_sync.assert_called_once_with("/events/view/1", params={})
 
     def test_events_create_json_output(self):
         """Test creating an event with JSON output."""
@@ -71,14 +73,15 @@ class TestEventsCommands:
         mock_config.output_format = "json"
         
         mock_client = MagicMock()
-        mock_client.post.return_value = {
+        mock_client.post_sync.return_value = {
             "Event": {"id": 42, "info": "New Event"}
         }
         
-        with patch("misp_cli.cli.commands.events.MISPConfig") as mock_config_class:
-            with patch("misp_cli.cli.commands.events.MISPCLient") as mock_client_class:
-                mock_config_class.from_file.return_value = mock_config
-                mock_client_class.return_value = mock_client
+        mock_app = MagicMock()
+        mock_app.profile = mock_config
+        mock_app.client = mock_client
+        
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app):
                 
                 from misp_cli.cli.commands.events import create_event
                 create_event(
@@ -90,8 +93,8 @@ class TestEventsCommands:
                     json_output=True
                 )
                 
-                mock_client.post.assert_called_once()
-                call_args = mock_client.post.call_args
+                mock_client.post_sync.assert_called_once()
+                call_args = mock_client.post_sync.call_args
                 assert "/events/add" in call_args[0][0]
 
     def test_events_delete_force(self):
@@ -103,17 +106,18 @@ class TestEventsCommands:
         mock_config.output_format = "json"
         
         mock_client = MagicMock()
-        mock_client.post.return_value = {"message": "Event deleted"}
+        mock_client.post_sync.return_value = {"message": "Event deleted"}
         
-        with patch("misp_cli.cli.commands.events.MISPConfig") as mock_config_class:
-            with patch("misp_cli.cli.commands.events.MISPCLient") as mock_client_class:
-                mock_config_class.from_file.return_value = mock_config
-                mock_client_class.return_value = mock_client
+        mock_app = MagicMock()
+        mock_app.profile = mock_config
+        mock_app.client = mock_client
+        
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app):
                 
                 from misp_cli.cli.commands.events import delete_event
                 delete_event(event_id=1, force=True, json_output=True)
                 
-                mock_client.post.assert_called_once_with("/events/delete/1")
+                mock_client.post_sync.assert_called_once_with("/events/delete/1")
 
     def test_events_publish(self):
         """Test publishing an event."""
@@ -124,17 +128,18 @@ class TestEventsCommands:
         mock_config.output_format = "json"
         
         mock_client = MagicMock()
-        mock_client.post.return_value = {"message": "Event published"}
+        mock_client.post_sync.return_value = {"message": "Event published"}
         
-        with patch("misp_cli.cli.commands.events.MISPConfig") as mock_config_class:
-            with patch("misp_cli.cli.commands.events.MISPCLient") as mock_client_class:
-                mock_config_class.from_file.return_value = mock_config
-                mock_client_class.return_value = mock_client
+        mock_app = MagicMock()
+        mock_app.profile = mock_config
+        mock_app.client = mock_client
+        
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app):
                 
                 from misp_cli.cli.commands.events import publish_event
                 publish_event(event_id=1, json_output=True)
                 
-                mock_client.post.assert_called_once_with("/events/publish/1")
+                mock_client.post_sync.assert_called_once_with("/events/publish/1")
 
     def test_events_search(self):
         """Test searching events."""
@@ -145,18 +150,19 @@ class TestEventsCommands:
         mock_config.output_format = "json"
         
         mock_client = MagicMock()
-        mock_client.post.return_value = {
+        mock_client.post_sync.return_value = {
             "events": [{"id": 1, "info": "Ransomware Event"}]
         }
         
-        with patch("misp_cli.cli.commands.events.MISPConfig") as mock_config_class:
-            with patch("misp_cli.cli.commands.events.MISPCLient") as mock_client_class:
-                mock_config_class.from_file.return_value = mock_config
-                mock_client_class.return_value = mock_client
+        mock_app = MagicMock()
+        mock_app.profile = mock_config
+        mock_app.client = mock_client
+        
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app):
                 
                 from misp_cli.cli.commands.events import search_events
                 search_events(term="ransomware", json_output=True, table_output=False)
                 
-                mock_client.post.assert_called_once()
-                call_args = mock_client.post.call_args
+                mock_client.post_sync.assert_called_once()
+                call_args = mock_client.post_sync.call_args
                 assert "/events/restSearch" in call_args[0][0]
