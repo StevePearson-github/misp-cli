@@ -53,6 +53,12 @@ htmlcov/
 # Project-specific
 .misp-cli.conf
 
+# Troubleshooting sessions (internal documentation)
+docs/troubleshooting_sessions/
+
+# Work in progress documentation
+docs/wip/
+
 # mypy
 .mypy_cache/
 
