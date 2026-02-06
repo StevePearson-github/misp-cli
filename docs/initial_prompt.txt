@@ -1,0 +1,5 @@
+the misp api spec is available at: https://www.misp-project.org/openapi/ 
+
+I want to create a cli tool called misp-cli that will allow me to call all of the endpoints in the misp api using command line parameters. The tool should allow for a .misp-cli.conf file that is an ini-style config file to hold multiple potential misp instance configurations.
+
+the tool should use python, and should prefer uv for virtual environments and testing
