@@ -64,6 +64,9 @@ def list_attributes(
     category: Optional[str] = typer.Option(None, "-c", "--category", help="Filter by category"),
     limit: int = typer.Option(50, "-l", "--limit", help="Maximum number of attributes"),
     page: int = typer.Option(1, "-p", "--page", help="Page number"),
+    from_date: Optional[str] = typer.Option(None, "--from", help="Start date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 7d)"),
+    to_date: Optional[str] = typer.Option(None, "--to", help="End date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 14d)"),
+    last: Optional[str] = typer.Option(None, "--last", help="Relative time filter (e.g., 5d, 12h, 30m, 1617875568)"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-T", "--table", help="Output as table"),
 ):
@@ -84,6 +87,12 @@ def list_attributes(
         params["type"] = type
     if category:
         params["category"] = category
+    if from_date:
+        params["from"] = from_date
+    if to_date:
+        params["to"] = to_date
+    if last:
+        params["last"] = last
     
     response = client.get_sync("/attributes/index", params=params)
     
@@ -213,6 +222,9 @@ def search_attributes(
     value: str = typer.Argument(..., help="Search value"),
     type: Optional[str] = typer.Option(None, "-t", "--type", help="Filter by type"),
     category: Optional[str] = typer.Option(None, "-c", "--category", help="Filter by category"),
+    from_date: Optional[str] = typer.Option(None, "--from", help="Start date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 7d)"),
+    to_date: Optional[str] = typer.Option(None, "--to", help="End date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 14d)"),
+    last: Optional[str] = typer.Option(None, "--last", help="Relative time filter (e.g., 5d, 12h, 30m, 1617875568)"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-T", "--table", help="Output as table"),
 ):
@@ -228,6 +240,12 @@ def search_attributes(
         data["type"] = type
     if category:
         data["category"] = category
+    if from_date:
+        data["from"] = from_date
+    if to_date:
+        data["to"] = to_date
+    if last:
+        data["last"] = last
     
     response = client.post_sync("/attributes/restSearch", data=data)
     

@@ -66,6 +66,12 @@ def list_events(
     page: int = typer.Option(1, "-p", "--page", help="Page number"),
     search: Optional[str] = typer.Option(None, "-s", "--search", help="Search query"),
     org: Optional[str] = typer.Option(None, "-o", "--org", help="Organization filter"),
+    from_date: Optional[str] = typer.Option(None, "--from", help="Start date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 7d)"),
+    to_date: Optional[str] = typer.Option(None, "--to", help="End date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 14d)"),
+    last: Optional[str] = typer.Option(None, "--last", help="Relative time filter (e.g., 5d, 12h, 30m, 1617875568)"),
+    date: Optional[str] = typer.Option(None, "--date", help="Event date filter (YYYY-MM-DD)"),
+    timestamp: Optional[str] = typer.Option(None, "--timestamp", help="Modification timestamp filter"),
+    publish_timestamp: Optional[str] = typer.Option(None, "--publish-timestamp", help="Publication timestamp filter"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
 ):
@@ -84,6 +90,18 @@ def list_events(
         params["search"] = search
     if org:
         params["org"] = org
+    if from_date:
+        params["from"] = from_date
+    if to_date:
+        params["to"] = to_date
+    if last:
+        params["last"] = last
+    if date:
+        params["date"] = date
+    if timestamp:
+        params["timestamp"] = timestamp
+    if publish_timestamp:
+        params["publish_timestamp"] = publish_timestamp
     
     response = client.get_sync("/events/index", params=params)
     
@@ -225,6 +243,12 @@ def unpublish_event(
 @events_app.command("search")
 def search_events(
     term: str = typer.Argument(..., help="Search term"),
+    from_date: Optional[str] = typer.Option(None, "--from", help="Start date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 7d)"),
+    to_date: Optional[str] = typer.Option(None, "--to", help="End date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 14d)"),
+    last: Optional[str] = typer.Option(None, "--last", help="Relative time filter (e.g., 5d, 12h, 30m, 1617875568)"),
+    date: Optional[str] = typer.Option(None, "--date", help="Event date filter (YYYY-MM-DD)"),
+    timestamp: Optional[str] = typer.Option(None, "--timestamp", help="Modification timestamp filter"),
+    publish_timestamp: Optional[str] = typer.Option(None, "--publish-timestamp", help="Publication timestamp filter"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
 ):
@@ -235,7 +259,21 @@ def search_events(
     config = app.profile
     client = app.client
     
-    response = client.post_sync("/events/restSearch", data={"search": term})
+    data: Dict[str, Any] = {"search": term}
+    if from_date:
+        data["from"] = from_date
+    if to_date:
+        data["to"] = to_date
+    if last:
+        data["last"] = last
+    if date:
+        data["date"] = date
+    if timestamp:
+        data["timestamp"] = timestamp
+    if publish_timestamp:
+        data["publish_timestamp"] = publish_timestamp
+    
+    response = client.post_sync("/events/restSearch", data=data)
     
     output_format = _get_output_format(config, json_output, table_output)
     events = response.get("events", response.get("data", []))
