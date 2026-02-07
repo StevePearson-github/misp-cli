@@ -10,6 +10,7 @@ A comprehensive command-line interface for interacting with [MISP](https://www.m
 - [Usage](#usage)
 - [Available Commands](#available-commands)
 - [Examples](#examples)
+- [Date Filtering](#date-filtering)
 - [Development](#development)
 - [License](#license)
 
@@ -426,6 +427,64 @@ misp-cli events list --json
 
 # Override output format globally
 misp-cli --output table events list
+```
+
+## Date Filtering
+
+All search commands support powerful date filtering options to help you find events, attributes, and objects within specific time ranges.
+
+### Date Filtering Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `--from` / `--to` | Date range filters (inclusive) |
+| `--last` | Relative time filter (e.g., `7d`, `14d`, `5h`, `30m`) |
+| `--date` | Event/Object date filter |
+| `--timestamp` | Modification timestamp filter |
+| `--publish-timestamp` | Publication timestamp filter |
+
+### Supported Date Formats
+
+- **Relative**: `7d`, `14d`, `30d`, `5h`, `30m` (days, hours, minutes)
+- **ISO 8601**: `2024-03-19T11:10:24Z`, `2024-03-19T00:00:00`
+- **Unix timestamp**: `1617875568`
+- **Date only**: `2024-03-19`
+
+### Examples
+
+```bash
+# List attributes from a specific date range
+misp-cli attributes list --from 2024-01-01 --to 2024-12-31
+
+# Search for events modified in the last 7 days
+misp-cli events search --last 7d
+
+# List objects created in Q1 2024
+misp-cli objects list --from 2024-01-01T00:00:00Z --to 2024-03-31T23:59:59Z
+
+# Find events by exact date
+misp-cli events list --date 2024-06-15
+
+# Search for attributes with specific timestamp
+misp-cli attributes search "malware" --from 2024-01-01
+
+# Use Unix timestamp for precise filtering
+misp-cli events list --from 1672531200 --to 1704067199
+```
+
+### Combining Filters
+
+Date filters can be combined with other filtering options:
+
+```bash
+# Filter by date range and organization
+misp-cli events list --from 2024-01-01 --org "ACME Corp"
+
+# Search for IP attributes in a time range
+misp-cli attributes list --type "ip-src" --from 2024-01-01 --to 2024-06-30
+
+# Last modified with event filter
+misp-cli objects list --event 1234 --last 30d
 ```
 
 ## Development

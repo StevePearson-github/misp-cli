@@ -62,6 +62,9 @@ def list_objects(
     event_id: Optional[int] = typer.Option(None, "-e", "--event", help="Filter by event ID"),
     limit: int = typer.Option(50, "-l", "--limit", help="Maximum number of objects"),
     page: int = typer.Option(1, "-p", "--page", help="Page number"),
+    from_date: Optional[str] = typer.Option(None, "--from", help="Start date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 7d)"),
+    to_date: Optional[str] = typer.Option(None, "--to", help="End date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 14d)"),
+    date: Optional[str] = typer.Option(None, "--date", help="Date filter (YYYY-MM-DD)"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
 ):
@@ -78,6 +81,12 @@ def list_objects(
     }
     if event_id:
         params["eventid"] = event_id
+    if from_date:
+        params["from"] = from_date
+    if to_date:
+        params["to"] = to_date
+    if date:
+        params["date"] = date
     
     response = client.get_sync("/objects/restSearch", params=params)
     
