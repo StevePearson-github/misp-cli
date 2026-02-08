@@ -3,6 +3,7 @@
 
 [DEFAULT]
 ; Default profile settings (applies to all profiles)
+default_profile = default
 verify_ssl = true
 timeout = 30
 output_format = json

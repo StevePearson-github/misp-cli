@@ -263,11 +263,12 @@ class ConfigManager:
         """
         config_path = path or Path.cwd() / ".misp-cli.conf"
         
-        config_content = '''; MISP CLI Configuration File
+        config_content = """; MISP CLI Configuration File
 ; Supports multiple MISP instance profiles
 
 [DEFAULT]
 ; Default profile settings (applies to all profiles)
+default_profile = default
 verify_ssl = true
 timeout = 30
 output_format = json
@@ -308,7 +309,7 @@ verify_ssl = false
 timeout = 15
 output_format = json
 colorize = false
-'''
+"""
         
         config_path.write_text(config_content)
         return config_path
