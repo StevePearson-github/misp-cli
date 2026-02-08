@@ -1,6 +1,8 @@
 """HTTP client for MISP API interactions."""
 
 import asyncio
+import csv
+import io
 import httpx
 from typing import Any, Dict, List, Optional
 from misp_cli.core.config import MISPProfile
@@ -142,6 +144,10 @@ class MISPCLient:
             error_type = response_data.get("name", "API Error")
             message = response_data.get("message", response_data.get("error", f"HTTP {response.status_code}"))
 
+            # Avoid duplicating the error message if name and message are the same
+            if error_type == message:
+                message = response_data.get("error", message)
+
             if response.status_code == 401:
                 raise MISPAuthenticationError(message, status_code=401, error_type=error_type)
             elif response.status_code == 403:
@@ -173,6 +179,57 @@ class MISPCLient:
             verify_ssl=profile.verify_ssl,
             timeout=profile.timeout,
         )
+
+    # Output formatting methods
+    @staticmethod
+    def format_as_csv(data: List[Dict], columns: Optional[List[str]] = None) -> str:
+        """
+        Format data as CSV.
+        
+        Args:
+            data: List of dictionaries to format
+            columns: Optional list of columns to include (in order)
+        
+        Returns:
+            CSV formatted string
+        """
+        if not data:
+            return ""
+        
+        # Determine columns to use
+        if columns:
+            keys = columns
+        else:
+            keys = list(data[0].keys()) if data else []
+        
+        # Handle None values
+        def clean_value(value: Any) -> str:
+            if value is None:
+                return ""
+            elif isinstance(value, (dict, list)):
+                return str(len(value))
+            return str(value)
+        
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=keys, extrasaction="ignore")
+        writer.writeheader()
+        for row in data:
+            cleaned_row = {k: clean_value(v) for k, v in row.items() if k in keys}
+            writer.writerow(cleaned_row)
+        
+        return output.getvalue()
+
+    @staticmethod
+    def flatten_dict(d: Dict[str, Any], parent_key: str = "", sep: str = "_") -> Dict[str, Any]:
+        """Flatten nested dictionary."""
+        items = []
+        for k, v in d.items():
+            new_key = f"{parent_key}{sep}{k}" if parent_key else k
+            if isinstance(v, dict):
+                items.extend(MISPCLient.flatten_dict(v, new_key, sep).items())
+            else:
+                items.append((new_key, v))
+        return dict(items)
 
     # Synchronous wrapper methods for CLI usage
     def get_sync(

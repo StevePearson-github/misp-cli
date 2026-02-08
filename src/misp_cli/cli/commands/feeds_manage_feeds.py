@@ -91,7 +91,17 @@ def list_managed_feeds(
     response = client.get_sync("/feeds/index")
     
     output_format = _get_output_format(config, json_output, table_output)
-    feeds = response.get("feeds", response.get("data", []))
+    
+    # Unwrap nested Feed structure: [{'Feed': {...}}, ...] -> [{...}, ...]
+    raw_feeds = response.get("feeds", response.get("data", []))
+    if raw_feeds and isinstance(raw_feeds, list):
+        # Check if each item is wrapped in "Feed" key
+        if all(isinstance(item, dict) and "Feed" in item for item in raw_feeds):
+            feeds = [item["Feed"] for item in raw_feeds]
+        else:
+            feeds = raw_feeds
+    else:
+        feeds = raw_feeds
     
     if output_format == "table":
         _print_table(feeds)

@@ -217,6 +217,7 @@ def _register_commands():
     from misp_cli.cli.commands.events import events_app
     from misp_cli.cli.commands.attributes import attributes_app
     from misp_cli.cli.commands.users import users_app
+    from misp_cli.cli.commands.organisations import organisations_app
     from misp_cli.cli.commands.tags import tags_app
     from misp_cli.cli.commands.sharing_groups import sharing_groups_app
     from misp_cli.cli.commands.feeds import feeds_app
@@ -238,6 +239,7 @@ def _register_commands():
     app.add_typer(events_app, name="events")
     app.add_typer(attributes_app, name="attributes")
     app.add_typer(users_app, name="users")
+    app.add_typer(organisations_app, name="organisations")
     app.add_typer(tags_app, name="tags")
     app.add_typer(sharing_groups_app, name="sharing-groups")
     app.add_typer(feeds_app, name="feeds")

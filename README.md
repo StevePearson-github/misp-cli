@@ -288,6 +288,16 @@ misp-cli --output table events list
 | `users show` | Show user details |
 | `users current` | Get current user info |
 
+### Organisation Management
+
+| Command | Description |
+|---------|-------------|
+| `organisations list` | List all organisations |
+| `organisations show` | Show organisation details |
+| `organisations create` | Create a new organisation |
+| `organisations edit` | Edit an organisation |
+| `organisations delete` | Delete an organisation |
+
 ### Sharing Groups
 
 | Command | Description |
@@ -382,6 +392,40 @@ misp-cli tags detach --event-id 1234 --tag-id 5678
 
 # List tags for an event
 misp-cli tags event-tags 1234
+```
+
+### Organisation Operations
+
+```bash
+# List organisations
+misp-cli organisations list --limit 50
+
+# List organisations in table format
+misp-cli organisations list --table
+
+# Show organisation details
+misp-cli organisations show 1
+
+# Show organisation by UUID
+misp-cli organisations show c99506a6-1255-4b71-afa5-7b8ba48c3b1b
+
+# Create a new organisation
+misp-cli organisations create --name "ACME Corp" --sector "Technology" --nationality "US"
+
+# Create organisation with domain restrictions
+misp-cli organisations create -n "Example Org" --type "Commercial" --restricted-to-domain "example.com,example.org"
+
+# Edit an organisation
+misp-cli organisations edit 1 --name "New Name" --description "Updated description"
+
+# Edit organisation sector and nationality
+misp-cli organisations edit 1 --sector "Finance" --nationality "UK"
+
+# Delete an organisation (with confirmation)
+misp-cli organisations delete 1
+
+# Delete organisation without confirmation
+misp-cli organisations delete 1 --force
 ```
 
 ### Using Different Profiles
