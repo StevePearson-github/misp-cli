@@ -1,16 +1,12 @@
-"""Dashboard and statistics commands for MISP CLI."""
-
-import json
-from typing import Any, Dict
+"""Statistics commands for MISP CLI."""
 
 import typer
-from rich.table import Table
 
-from misp_cli.core.config import MISPProfile
+from misp_cli.cli.output import get_output_format, print_csv, print_json, print_table
 
 stats_app = typer.Typer(
     name="stats",
-    help="View MISP dashboard and statistics",
+    help="View MISP statistics",
     add_help_option=True,
     invoke_without_command=True,
 )
@@ -27,175 +23,323 @@ def stats_callback(
         is_eager=True,
     ),
 ):
-    """View MISP dashboard and statistics."""
+    """View MISP statistics."""
     if help:
         typer.echo(ctx.get_help())
         raise typer.Exit()
 
 
-def _get_output_format(config: MISPProfile, json_output: bool, table_output: bool) -> str:
-    """Determine output format based on options and config."""
-    if table_output:
-        return "table"
-    if json_output:
-        return "json"
-    return config.output_format
-
-
-def _print_json(data: Any) -> None:
-    """Print data as formatted JSON."""
-    typer.echo(json.dumps(data, indent=2, default=str))
-
-
-def _print_table(data: Dict[str, Any], title: str = None) -> None:
-    """Print data as a table."""
-    from misp_cli.cli.app import get_app
-    console = get_app().console
-    table = Table(title=title, show_header=True, header_style="bold magenta")
-
-    for key, value in data.items():
-        table.add_column(key.replace("_", " ").title())
-
-    row = []
-    for value in data.values():
-        if value is None:
-            row.append("N/A")
-        elif isinstance(value, (dict, list)):
-            row.append(str(len(value)))
-        else:
-            row.append(str(value))
-    table.add_row(*row)
-
-    console.print(table)
-
-
-@stats_app.command("system")
-def system_stats(
+@stats_app.command("overview")
+def stats_overview(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
 ):
-    """Get system statistics."""
+    """Show overall statistics overview."""
     from misp_cli.cli.app import get_app
-    from misp_cli.core.exceptions import MISPAPIError, MISPNotFoundError
 
     app = get_app()
     config = app.profile
     client = app.client
 
-    try:
-        response = client.get_sync("/users/statistics/data.json")
-    except MISPNotFoundError as e:
-        typer.echo(f"Error: System statistics endpoint not found. Check your MISP version.", err=True)
-        raise typer.Exit(1)
-    except MISPAPIError as e:
-        typer.echo(f"Error fetching system statistics: {e.message}", err=True)
-        raise typer.Exit(1)
+    response = client.get_sync("/stats")
 
-    output_format = _get_output_format(config, json_output, table_output)
+    output_format = get_output_format(config, json_output, table_output, False)
 
-    if output_format == "json" or json_output:
-        _print_json(response)
+    if output_format == "table":
+        print_table([response])
     else:
-        if isinstance(response, dict):
-            _print_table(response, "System Statistics")
-        else:
-            _print_json(response)
+        print_json(response)
+
+
+@stats_app.command("attributes")
+def stats_attributes(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+):
+    """Show attribute statistics."""
+    from misp_cli.cli.app import get_app
+
+    app = get_app()
+    config = app.profile
+    client = app.client
+
+    response = client.get_sync("/stats/attributes")
+
+    output_format = get_output_format(config, json_output, table_output, False)
+
+    if output_format == "table":
+        print_table([response])
+    else:
+        print_json(response)
+
+
+@stats_app.command("events")
+def stats_events(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+):
+    """Show event statistics."""
+    from misp_cli.cli.app import get_app
+
+    app = get_app()
+    config = app.profile
+    client = app.client
+
+    response = client.get_sync("/stats/events")
+
+    output_format = get_output_format(config, json_output, table_output, False)
+
+    if output_format == "table":
+        print_table([response])
+    else:
+        print_json(response)
 
 
 @stats_app.command("users")
-def user_stats(
+def stats_users(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
 ):
-    """Get user statistics."""
+    """Show user statistics."""
     from misp_cli.cli.app import get_app
-    from misp_cli.core.exceptions import MISPAPIError, MISPNotFoundError
 
     app = get_app()
     config = app.profile
     client = app.client
 
-    try:
-        response = client.get_sync("/users/statistics.json")
-    except MISPNotFoundError as e:
-        typer.echo(f"Error: User statistics endpoint not found. Check your MISP version.", err=True)
-        raise typer.Exit(1)
-    except MISPAPIError as e:
-        typer.echo(f"Error fetching user statistics: {e.message}", err=True)
-        raise typer.Exit(1)
+    response = client.get_sync("/stats/users")
 
-    output_format = _get_output_format(config, json_output, table_output)
+    output_format = get_output_format(config, json_output, table_output, False)
 
-    if output_format == "json" or json_output:
-        _print_json(response)
+    if output_format == "table":
+        print_table([response])
     else:
-        if isinstance(response, dict):
-            _print_table(response, "User Statistics")
-        else:
-            _print_json(response)
+        print_json(response)
 
 
-@stats_app.command("orgs")
-def org_stats(
+@stats_app.command("organisations")
+def stats_organisations(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
 ):
-    """Get organisation statistics."""
+    """Show organisation statistics."""
     from misp_cli.cli.app import get_app
-    from misp_cli.core.exceptions import MISPAPIError, MISPNotFoundError
 
     app = get_app()
     config = app.profile
     client = app.client
 
-    try:
-        response = client.get_sync("/users/statistics/orgs.json")
-    except MISPNotFoundError as e:
-        typer.echo(f"Error: Organisation statistics endpoint not found. Check your MISP version.", err=True)
-        raise typer.Exit(1)
-    except MISPAPIError as e:
-        typer.echo(f"Error fetching organisation statistics: {e.message}", err=True)
-        raise typer.Exit(1)
+    response = client.get_sync("/stats/organisations")
 
-    output_format = _get_output_format(config, json_output, table_output)
+    output_format = get_output_format(config, json_output, table_output, False)
 
-    if output_format == "json" or json_output:
-        _print_json(response)
+    if output_format == "table":
+        print_table([response])
     else:
-        if isinstance(response, dict):
-            _print_table(response, "Organisation Statistics")
-        else:
-            _print_json(response)
+        print_json(response)
 
 
 @stats_app.command("tags")
-def tag_stats(
+def stats_tags(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
 ):
-    """Get tag statistics."""
+    """Show tag statistics."""
     from misp_cli.cli.app import get_app
-    from misp_cli.core.exceptions import MISPAPIError, MISPNotFoundError
 
     app = get_app()
     config = app.profile
     client = app.client
 
-    try:
-        response = client.get_sync("/users/statistics/tags.json")
-    except MISPNotFoundError as e:
-        typer.echo(f"Error: Tag statistics endpoint not found. Check your MISP version.", err=True)
-        raise typer.Exit(1)
-    except MISPAPIError as e:
-        typer.echo(f"Error fetching tag statistics: {e.message}", err=True)
-        raise typer.Exit(1)
+    response = client.get_sync("/stats/tags")
 
-    output_format = _get_output_format(config, json_output, table_output)
+    output_format = get_output_format(config, json_output, table_output, False)
 
-    if output_format == "json" or json_output:
-        _print_json(response)
+    if output_format == "table":
+        print_table([response])
     else:
-        if isinstance(response, dict):
-            _print_table(response, "Tag Statistics")
-        else:
-            _print_json(response)
+        print_json(response)
+
+
+@stats_app.command("galaxies")
+def stats_galaxies(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+):
+    """Show galaxy statistics."""
+    from misp_cli.cli.app import get_app
+
+    app = get_app()
+    config = app.profile
+    client = app.client
+
+    response = client.get_sync("/stats/galaxies")
+
+    output_format = get_output_format(config, json_output, table_output, False)
+
+    if output_format == "table":
+        print_table([response])
+    else:
+        print_json(response)
+
+
+@stats_app.command("attack")
+def stats_attack(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+):
+    """Show ATT&CK statistics."""
+    from misp_cli.cli.app import get_app
+
+    app = get_app()
+    config = app.profile
+    client = app.client
+
+    response = client.get_sync("/stats/attackMatrix")
+
+    output_format = get_output_format(config, json_output, table_output, False)
+
+    if output_format == "table":
+        print_table([response])
+    else:
+        print_json(response)
+
+
+@stats_app.command("sightings")
+def stats_sightings(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+):
+    """Show sighting statistics."""
+    from misp_cli.cli.app import get_app
+
+    app = get_app()
+    config = app.profile
+    client = app.client
+
+    response = client.get_sync("/stats/sightings")
+
+    output_format = get_output_format(config, json_output, table_output, False)
+
+    if output_format == "table":
+        print_table([response])
+    else:
+        print_json(response)
+
+
+@stats_app.command("correlation")
+def stats_correlation(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+):
+    """Show correlation statistics."""
+    from misp_cli.cli.app import get_app
+
+    app = get_app()
+    config = app.profile
+    client = app.client
+
+    response = client.get_sync("/stats/correlations")
+
+    output_format = get_output_format(config, json_output, table_output, False)
+
+    if output_format == "table":
+        print_table([response])
+    else:
+        print_json(response)
+
+
+@stats_app.command("health")
+def stats_health(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+):
+    """Show instance health statistics."""
+    from misp_cli.cli.app import get_app
+
+    app = get_app()
+    config = app.profile
+    client = app.client
+
+    response = client.get_sync("/stats/health")
+
+    output_format = get_output_format(config, json_output, table_output, False)
+
+    if output_format == "table":
+        print_table([response])
+    else:
+        print_json(response)
+
+
+@stats_app.command("workers")
+def stats_workers(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+):
+    """Show background worker statistics."""
+    from misp_cli.cli.app import get_app
+
+    app = get_app()
+    config = app.profile
+    client = app.client
+
+    response = client.get_sync("/stats/workers")
+
+    output_format = get_output_format(config, json_output, table_output, False)
+
+    if output_format == "table":
+        print_table([response])
+    else:
+        print_json(response)
+
+
+@stats_app.command("dashboard")
+def stats_dashboard(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+):
+    """Show dashboard statistics."""
+    from misp_cli.cli.app import get_app
+
+    app = get_app()
+    config = app.profile
+    client = app.client
+
+    response = client.get_sync("/stats/getDashboards")
+
+    output_format = get_output_format(config, json_output, table_output, False)
+
+    if output_format == "table":
+        print_table([response])
+    else:
+        print_json(response)
+
+
+@stats_app.command("export")
+def stats_export(
+    stats_type: str = typer.Argument(..., help="Type of statistics to export"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
+):
+    """Export statistics in various formats."""
+    from misp_cli.cli.app import get_app
+
+    app = get_app()
+    config = app.profile
+    client = app.client
+
+    valid_types = ["events", "attributes", "tags", "users", "organisations", "galaxies"]
+    if stats_type not in valid_types:
+        typer.echo(f"Invalid type: {stats_type}. Valid types: {', '.join(valid_types)}", err=True)
+        raise typer.Exit(1)
+
+    response = client.get_sync(f"/stats/export/{stats_type}")
+
+    output_format = get_output_format(config, json_output, False, csv_output)
+
+    if output_format == "csv":
+        print_csv(response.get("data", response))
+    elif output_format == "table":
+        print_table(response.get("data", [response]))
+    else:
+        print_json(response)

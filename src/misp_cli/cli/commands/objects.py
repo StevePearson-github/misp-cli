@@ -1,12 +1,11 @@
 """MISP Object management commands for MISP CLI."""
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import typer
-from rich.table import Table
 
-from misp_cli.core.config import MISPProfile
+from misp_cli.cli.output import get_output_format, print_csv, print_json, print_table
 
 objects_app = typer.Typer(
     name="objects",
@@ -33,68 +32,30 @@ def objects_callback(
         raise typer.Exit()
 
 
-def _get_output_format(config: MISPProfile, json_output: bool, table_output: bool) -> str:
-    """Determine output format based on options and config."""
-    if table_output:
-        return "table"
-    if json_output:
-        return "json"
-    return config.output_format
-
-
-def _print_json(data: Any) -> None:
-    """Print data as formatted JSON."""
-    typer.echo(json.dumps(data, indent=2, default=str))
-
-
-def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
-    """Print data as a table."""
-    if not data:
-        typer.echo("No data available")
-        return
-    
-    from misp_cli.cli.app import get_app
-    console = get_app().console
-    table = Table(show_header=True, header_style="bold magenta")
-    
-    if columns:
-        for col in columns:
-            table.add_column(col.replace("_", " ").title())
-    else:
-        for key in data[0].keys():
-            table.add_column(key.replace("_", " ").title())
-    
-    for item in data:
-        row = []
-        for value in item.values():
-            if isinstance(value, (dict, list)):
-                row.append(str(len(value)))
-            else:
-                row.append(str(value))
-        table.add_row(*row)
-    
-    console.print(table)
-
-
 @objects_app.command("list")
 def list_objects(
-    event_id: Optional[int] = typer.Option(None, "-e", "--event", help="Filter by event ID"),
+    event_id: int | None = typer.Option(None, "-e", "--event", help="Filter by event ID"),
     limit: int = typer.Option(50, "-l", "--limit", help="Maximum number of objects"),
     page: int = typer.Option(1, "-p", "--page", help="Page number"),
-    from_date: Optional[str] = typer.Option(None, "--from", help="Start date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 7d)"),
-    to_date: Optional[str] = typer.Option(None, "--to", help="End date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 14d)"),
-    date: Optional[str] = typer.Option(None, "--date", help="Date filter (YYYY-MM-DD)"),
+    from_date: str | None = typer.Option(
+        None, "--from", help="Start date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 7d)"
+    ),
+    to_date: str | None = typer.Option(
+        None, "--to", help="End date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 14d)"
+    ),
+    date: str | None = typer.Option(None, "--date", help="Date filter (YYYY-MM-DD)"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
 ):
     """List all objects."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
-    params: Dict[str, Any] = {
+
+    params: dict[str, Any] = {
         "limit": limit,
         "page": page,
     }
@@ -106,16 +67,18 @@ def list_objects(
         params["to"] = to_date
     if date:
         params["date"] = date
-    
+
     response = client.get_sync("/objects/restSearch", params=params)
-    
-    output_format = _get_output_format(config, json_output, table_output)
+
+    output_format = get_output_format(config, json_output, table_output, csv_output)
     objects = response.get("objects", response.get("data", []))
-    
-    if output_format == "table":
-        _print_table(objects)
+
+    if output_format == "csv":
+        print_csv(objects)
+    elif output_format == "table":
+        print_table(objects)
     else:
-        _print_json(objects)
+        print_json(objects)
 
 
 @objects_app.command("show")
@@ -125,20 +88,20 @@ def show_object(
 ):
     """Show details of a specific object."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.get_sync(f"/objects/view/{object_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         if isinstance(response, dict):
-            _print_table([response])
+            print_table([response])
         else:
-            _print_json(response)
+            print_json(response)
 
 
 @objects_app.command("add")
@@ -146,29 +109,29 @@ def add_object(
     event_id: int = typer.Argument(..., help="Event ID to add object to"),
     object_name: str = typer.Option(..., "-n", "--name", help="Object name"),
     template_id: int = typer.Option(..., "-t", "--template-id", help="Object template ID"),
-    comment: Optional[str] = typer.Option(None, "-c", "--comment", help="Comment"),
-    attributes: Optional[str] = typer.Option(None, "-a", "--attributes", help="JSON attributes"),
+    comment: str | None = typer.Option(None, "-c", "--comment", help="Comment"),
+    attributes: str | None = typer.Option(None, "-a", "--attributes", help="JSON attributes"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
     """Add an object to an event."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
-    data: Dict[str, Any] = {
+
+    data: dict[str, Any] = {
         "name": object_name,
         "template_id": template_id,
         "comment": comment or "",
     }
     if attributes:
         data["attributes"] = json.loads(attributes)
-    
+
     response = client.post_sync(f"/objects/add/{event_id}", data={"Object": data})
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         obj_id = response.get("Object", {}).get("id", "Unknown")
         typer.echo(f"Object created successfully: {obj_id}")
@@ -177,31 +140,31 @@ def add_object(
 @objects_app.command("edit")
 def edit_object(
     object_id: int = typer.Argument(..., help="Object ID to edit"),
-    name: Optional[str] = typer.Option(None, "-n", "--name", help="New name"),
-    comment: Optional[str] = typer.Option(None, "-c", "--comment", help="New comment"),
+    name: str | None = typer.Option(None, "-n", "--name", help="New name"),
+    comment: str | None = typer.Option(None, "-c", "--comment", help="New comment"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
     """Edit an object."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
-    data: Dict[str, Any] = {}
+
+    data: dict[str, Any] = {}
     if name:
         data["name"] = name
     if comment is not None:
         data["comment"] = comment
-    
+
     if not data:
         typer.echo("No changes specified", err=True)
         raise typer.Exit(1)
-    
+
     response = client.post_sync(f"/objects/edit/{object_id}", data={"Object": data})
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"Object {object_id} updated successfully")
 
@@ -214,18 +177,18 @@ def delete_object(
 ):
     """Delete an object."""
     from misp_cli.cli.app import get_app
-    
+
     if not force:
         typer.confirm(f"Are you sure you want to delete object {object_id}?", abort=True)
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.post_sync(f"/objects/delete/{object_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"Object {object_id} deleted successfully")
 
@@ -235,24 +198,27 @@ def list_references(
     object_id: int = typer.Argument(..., help="Object ID"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
 ):
     """List references for an object."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.get_sync(f"/objects/view/{object_id}", params={"references": 1})
-    
-    output_format = _get_output_format(config, json_output, table_output)
+
+    output_format = get_output_format(config, json_output, table_output, csv_output)
     obj = response.get("Object", response)
     references = obj.get("ObjectReference", [])
-    
-    if output_format == "table":
-        _print_table(references)
+
+    if output_format == "csv":
+        print_csv(references)
+    elif output_format == "table":
+        print_table(references)
     else:
-        _print_json(references)
+        print_json(references)
 
 
 @objects_app.command("add-reference")
@@ -260,29 +226,28 @@ def add_reference(
     object_id: int = typer.Argument(..., help="Source object ID"),
     referenced_object_id: int = typer.Option(..., "-r", "--ref-id", help="Referenced object ID"),
     relationship_type: str = typer.Option(..., "-t", "--type", help="Relationship type"),
-    comment: Optional[str] = typer.Option(None, "-c", "--comment", help="Comment"),
+    comment: str | None = typer.Option(None, "-c", "--comment", help="Comment"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
     """Add a reference to an object."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
-    data: Dict[str, Any] = {
+
+    data: dict[str, Any] = {
         "referenced_object_id": referenced_object_id,
         "relationship_type": relationship_type,
         "comment": comment or "",
     }
-    
+
     response = client.post_sync(
-        f"/objectReferences/add/{object_id}",
-        data={"ObjectReference": data}
+        f"/objectReferences/add/{object_id}", data={"ObjectReference": data}
     )
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo("Object reference added successfully")
 
@@ -292,21 +257,24 @@ def list_event_objects(
     event_id: int = typer.Argument(..., help="Event ID"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
 ):
     """List all objects for an event."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.get_sync(f"/events/view/{event_id}", params={"objects": 1})
-    
-    output_format = _get_output_format(config, json_output, table_output)
+
+    output_format = get_output_format(config, json_output, table_output, csv_output)
     event = response.get("Event", response)
     objects = event.get("Object", [])
-    
-    if output_format == "table":
-        _print_table(objects)
+
+    if output_format == "csv":
+        print_csv(objects)
+    elif output_format == "table":
+        print_table(objects)
     else:
-        _print_json(objects)
+        print_json(objects)

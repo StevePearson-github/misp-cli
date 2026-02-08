@@ -1,12 +1,8 @@
 """Object template management commands for MISP CLI."""
 
-import json
-from typing import Any, Dict, List, Optional
-
 import typer
-from rich.table import Table
 
-from misp_cli.core.config import MISPProfile
+from misp_cli.cli.output import get_output_format, print_csv, print_json, print_table
 
 object_templates_app = typer.Typer(
     name="object-templates",
@@ -33,187 +29,134 @@ def object_templates_callback(
         raise typer.Exit()
 
 
-def _get_output_format(config: MISPProfile, json_output: bool, table_output: bool) -> str:
-    """Determine output format based on options and config."""
-    if table_output:
-        return "table"
-    if json_output:
-        return "json"
-    return config.output_format
-
-
-def _print_json(data: Any) -> None:
-    """Print data as formatted JSON."""
-    typer.echo(json.dumps(data, indent=2, default=str))
-
-
-def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
-    """Print data as a table."""
-    if not data:
-        typer.echo("No data available")
-        return
-    
-    from misp_cli.cli.app import get_app
-    console = get_app().console
-    table = Table(show_header=True, header_style="bold magenta")
-    
-    if columns:
-        for col in columns:
-            table.add_column(col.replace("_", " ").title())
-    else:
-        for key in data[0].keys():
-            table.add_column(key.replace("_", " ").title())
-    
-    for item in data:
-        row = []
-        for value in item.values():
-            if isinstance(value, (dict, list)):
-                row.append(str(len(value)))
-            else:
-                row.append(str(value))
-        table.add_row(*row)
-    
-    console.print(table)
-
-
 @object_templates_app.command("list")
-def list_templates(
-    limit: int = typer.Option(50, "-l", "--limit", help="Maximum number of templates"),
-    page: int = typer.Option(1, "-p", "--page", help="Page number"),
+def list_object_templates(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
 ):
     """List all object templates."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
-    params: Dict[str, Any] = {
-        "limit": limit,
-        "page": page,
-    }
-    
-    response = client.get_sync("/objectTemplates/index", params=params)
-    
-    output_format = _get_output_format(config, json_output, table_output)
-    templates = response.get("object_templates", response.get("data", []))
-    
-    if output_format == "table":
-        _print_table(templates)
+
+    response = client.get_sync("/objectTemplates/index")
+
+    output_format = get_output_format(config, json_output, table_output, csv_output)
+    templates = response.get("objectTemplates", response.get("data", []))
+
+    if output_format == "csv":
+        print_csv(templates)
+    elif output_format == "table":
+        print_table(templates)
     else:
-        _print_json(templates)
+        print_json(templates)
 
 
 @object_templates_app.command("show")
-def show_template(
+def show_object_template(
     template_id: int = typer.Argument(..., help="Template ID to show"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
-    """Show details of a specific template."""
+    """Show details of a specific object template."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.get_sync(f"/objectTemplates/view/{template_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         if isinstance(response, dict):
-            _print_table([response])
+            print_table([response])
         else:
-            _print_json(response)
-
-
-@object_templates_app.command("templates-elements")
-def show_template_elements(
-    template_id: int = typer.Argument(..., help="Template ID"),
-    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
-):
-    """Show elements of a template."""
-    from misp_cli.cli.app import get_app
-    
-    app = get_app()
-    config = app.profile
-    client = app.client
-    
-    response = client.get_sync(f"/objectTemplates/view/{template_id}", params={"elements": 1})
-    
-    if config.output_format == "json" or json_output:
-        _print_json(response)
-    else:
-        template = response.get("ObjectTemplate", response)
-        elements = template.get("ObjectTemplateElement", [])
-        _print_table(elements)
-
-
-@object_templates_app.command("add")
-def add_template(
-    path: str = typer.Argument(..., help="Path to template JSON file"),
-    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
-):
-    """Add a new object template from a JSON file."""
-    from misp_cli.cli.app import get_app
-    
-    app = get_app()
-    config = app.profile
-    client = app.client
-    
-    with open(path, "r") as f:
-        template_data = json.load(f)
-    
-    response = client.post_sync("/objectTemplates/add", data={"ObjectTemplate": template_data})
-    
-    if config.output_format == "json" or json_output:
-        _print_json(response)
-    else:
-        template_id = response.get("ObjectTemplate", {}).get("id", "Unknown")
-        typer.echo(f"Template added successfully: {template_id}")
+            print_json(response)
 
 
 @object_templates_app.command("delete")
-def delete_template(
+def delete_object_template(
     template_id: int = typer.Argument(..., help="Template ID to delete"),
     force: bool = typer.Option(False, "-f", "--force", help="Force deletion without confirmation"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
     """Delete an object template."""
     from misp_cli.cli.app import get_app
-    
+
     if not force:
         typer.confirm(f"Are you sure you want to delete template {template_id}?", abort=True)
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.post_sync(f"/objectTemplates/delete/{template_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"Template {template_id} deleted successfully")
 
 
-@object_templates_app.command("describe")
-def describe_template(
-    template_name: str = typer.Argument(..., help="Template name"),
+@object_templates_app.command("import")
+def import_object_template(
+    file_path: str = typer.Argument(..., help="Path to template JSON file"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
-    """Get template description by name."""
+    """Import an object template from a JSON file."""
+    import json
+
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
-    response = client.get_sync("/objectTemplates/describe", params={"name": template_name})
-    
+
+    try:
+        with open(file_path) as f:
+            template_data = json.load(f)
+    except FileNotFoundError:
+        typer.echo(f"Error: File {file_path} not found", err=True)
+        raise typer.Exit(1)
+    except json.JSONDecodeError:
+        typer.echo(f"Error: Invalid JSON in {file_path}", err=True)
+        raise typer.Exit(1)
+
+    response = client.post_sync("/objectTemplates/import", data={"ObjectTemplate": template_data})
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
-        _print_json(response)
+        template_id = response.get("ObjectTemplate", {}).get("id", "Unknown")
+        typer.echo(f"Template imported successfully: {template_id}")
+
+
+@object_templates_app.command("export")
+def export_object_template(
+    template_id: int = typer.Argument(..., help="Template ID to export"),
+    output_file: str | None = typer.Option(None, "-o", "--output", help="Output file path"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Export an object template to a JSON file."""
+    import json
+
+    from misp_cli.cli.app import get_app
+
+    app = get_app()
+    config = app.profile
+    client = app.client
+
+    response = client.get_sync(f"/objectTemplates/export/{template_id}")
+
+    if config.output_format == "json" or json_output:
+        print_json(response)
+    elif output_file:
+        with open(output_file, "w") as f:
+            json.dump(response, f, indent=2)
+        typer.echo(f"Exported to {output_file}")
+    else:
+        print_json(response)

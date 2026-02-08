@@ -27,11 +27,9 @@ class MISPApp:
         self,
         config_path: Optional[Path] = None,
         profile: Optional[str] = None,
-        output_format: Optional[str] = None,
         no_color: bool = False,
     ):
         self.console = Console(no_color=no_color)
-        self.output_format = output_format
 
         # Load configuration
         self.config_manager = ConfigManager(config_path)
@@ -54,7 +52,7 @@ class MISPApp:
 
     def get_output_format(self) -> str:
         """Get the output format."""
-        return self.output_format or self.profile.output_format
+        return self.profile.output_format
 
 
 # Global app instance
@@ -92,12 +90,6 @@ def callback(
         "--profile",
         help="Profile name to use from configuration",
     ),
-    output: Optional[str] = typer.Option(
-        None,
-        "-o",
-        "--output",
-        help="Output format (json, table, csv)",
-    ),
     no_color: bool = typer.Option(
         False,
         "--no-color",
@@ -130,7 +122,6 @@ def callback(
         misp_app = MISPApp(
             config_path=config,
             profile=profile,
-            output_format=output,
             no_color=no_color,
         )
         set_app(misp_app)

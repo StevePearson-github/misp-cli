@@ -1,12 +1,11 @@
 """User management commands for MISP CLI."""
 
-import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import typer
 from rich.table import Table
 
-from misp_cli.core.config import MISPProfile
+from misp_cli.cli.output import get_output_format, print_csv, print_json, print_table
 
 users_app = typer.Typer(
     name="users",
@@ -33,37 +32,24 @@ def users_callback(
         raise typer.Exit()
 
 
-def _get_output_format(config: MISPProfile, json_output: bool, table_output: bool) -> str:
-    """Determine output format based on options and config."""
-    if table_output:
-        return "table"
-    if json_output:
-        return "json"
-    return config.output_format
-
-
-def _print_json(data: Any) -> None:
-    """Print data as formatted JSON."""
-    typer.echo(json.dumps(data, indent=2, default=str))
-
-
-def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
-    """Print data as a table."""
+def _print_table_users(data: list[dict], columns: list[str] | None = None) -> None:
+    """Print user data as a table with N/A for None values."""
     if not data:
         typer.echo("No data available")
         return
-    
+
     from misp_cli.cli.app import get_app
+
     console = get_app().console
     table = Table(show_header=True, header_style="bold magenta")
-    
+
     if columns:
         for col in columns:
             table.add_column(col.replace("_", " ").title())
     else:
         for key in data[0].keys():
             table.add_column(key.replace("_", " ").title())
-    
+
     for item in data:
         row = []
         for value in item.values():
@@ -74,7 +60,7 @@ def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
             else:
                 row.append(str(value))
         table.add_row(*row)
-    
+
     console.print(table)
 
 
@@ -84,26 +70,31 @@ def list_users(
     page: int = typer.Option(1, "-p", "--page", help="Page number"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
     quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
 ):
     """List all users."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
-    params: Dict[str, Any] = {
+
+    params: dict[str, Any] = {
         "limit": limit,
         "page": page,
     }
-    
+
     response = client.post_sync("/admin/users/index", data=params)
-    
-    output_format = _get_output_format(config, json_output, table_output)
-    
+
+    output_format = get_output_format(config, json_output, table_output, csv_output)
+
     # Unwrap nested User structure: [{'User': {...}}, ...] -> [{...}, ...]
-    raw_users = response if isinstance(response, list) else response.get("User", response.get("users", response.get("data", [])))
+    raw_users = (
+        response
+        if isinstance(response, list)
+        else response.get("User", response.get("users", response.get("data", [])))
+    )
     if raw_users and isinstance(raw_users, list):
         # Check if each item is wrapped in "User" key
         if all(isinstance(item, dict) and "User" in item for item in raw_users):
@@ -112,14 +103,16 @@ def list_users(
             users = raw_users
     else:
         users = raw_users if isinstance(raw_users, list) else []
-    
+
     if not quiet:
         typer.echo(f"Found {len(users)} user(s)")
-    
-    if output_format == "table":
-        _print_table(users)
+
+    if output_format == "csv":
+        print_csv(users)
+    elif output_format == "table":
+        _print_table_users(users)
     else:
-        _print_json(users)
+        print_json(users)
 
 
 @users_app.command("show")
@@ -129,20 +122,20 @@ def show_user(
 ):
     """Show details of a specific user."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.get_sync(f"/users/view/{user_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         if isinstance(response, dict):
-            _print_table([response])
+            print_table([response])
         else:
-            _print_json(response)
+            print_json(response)
 
 
 @users_app.command("current")
@@ -151,20 +144,20 @@ def current_user(
 ):
     """Show current user information."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.get_sync("/users/view/me")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         if isinstance(response, dict):
-            _print_table([response])
+            print_table([response])
         else:
-            _print_json(response)
+            print_json(response)
 
 
 @users_app.command("create")
@@ -180,16 +173,16 @@ def create_user(
 ):
     """Create a new user."""
     from misp_cli.cli.app import get_app
-    
+
     if password != confirm_password:
         typer.echo("Passwords do not match", err=True)
         raise typer.Exit(1)
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
-    data: Dict[str, Any] = {
+
+    data: dict[str, Any] = {
         "email": email,
         "org_id": org_id,
         "role_id": role_id,
@@ -197,11 +190,11 @@ def create_user(
         "last_name": last_name,
         "password": password,
     }
-    
+
     response = client.post_sync("/users/add", data={"User": data})
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         user_id = response.get("User", {}).get("id", "Unknown")
         typer.echo(f"User created successfully: {user_id}")
@@ -210,22 +203,22 @@ def create_user(
 @users_app.command("edit")
 def edit_user(
     user_id: int = typer.Argument(..., help="User ID to edit"),
-    email: Optional[str] = typer.Option(None, "-e", "--email", help="New email"),
-    org_id: Optional[int] = typer.Option(None, "-o", "--org-id", help="New organisation ID"),
-    role_id: Optional[int] = typer.Option(None, "-r", "--role-id", help="New role ID"),
-    first_name: Optional[str] = typer.Option(None, "-f", "--first-name", help="New first name"),
-    last_name: Optional[str] = typer.Option(None, "-l", "--last-name", help="New last name"),
-    password: Optional[str] = typer.Option(None, "-p", "--password", help="New password"),
+    email: str | None = typer.Option(None, "-e", "--email", help="New email"),
+    org_id: int | None = typer.Option(None, "-o", "--org-id", help="New organisation ID"),
+    role_id: int | None = typer.Option(None, "-r", "--role-id", help="New role ID"),
+    first_name: str | None = typer.Option(None, "-f", "--first-name", help="New first name"),
+    last_name: str | None = typer.Option(None, "-l", "--last-name", help="New last name"),
+    password: str | None = typer.Option(None, "-p", "--password", help="New password"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
     """Edit a user."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
-    data: Dict[str, Any] = {}
+
+    data: dict[str, Any] = {}
     if email:
         data["email"] = email
     if org_id:
@@ -238,15 +231,15 @@ def edit_user(
         data["last_name"] = last_name
     if password:
         data["password"] = password
-    
+
     if not data:
         typer.echo("No changes specified", err=True)
         raise typer.Exit(1)
-    
+
     response = client.post_sync(f"/users/edit/{user_id}", data={"User": data})
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"User {user_id} updated successfully")
 
@@ -259,18 +252,18 @@ def delete_user(
 ):
     """Delete a user."""
     from misp_cli.cli.app import get_app
-    
+
     if not force:
         typer.confirm(f"Are you sure you want to delete user {user_id}?", abort=True)
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.post_sync(f"/users/delete/{user_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"User {user_id} deleted successfully")
 
@@ -283,17 +276,21 @@ def list_org_users(
 ):
     """List users in an organisation."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.post_sync("/admin/users/index", data={"org_id": org_id})
-    
-    output_format = _get_output_format(config, json_output, table_output)
-    
+
+    output_format = get_output_format(config, json_output, table_output)
+
     # Unwrap nested User structure: [{'User': {...}}, ...] -> [{...}, ...]
-    raw_users = response if isinstance(response, list) else response.get("User", response.get("users", response.get("data", [])))
+    raw_users = (
+        response
+        if isinstance(response, list)
+        else response.get("User", response.get("users", response.get("data", [])))
+    )
     if raw_users and isinstance(raw_users, list):
         # Check if each item is wrapped in "User" key
         if all(isinstance(item, dict) and "User" in item for item in raw_users):
@@ -302,11 +299,11 @@ def list_org_users(
             users = raw_users
     else:
         users = raw_users if isinstance(raw_users, list) else []
-    
+
     if output_format == "table":
-        _print_table(users)
+        _print_table_users(users)
     else:
-        _print_json(users)
+        print_json(users)
 
 
 @users_app.command("admin")
@@ -318,20 +315,20 @@ def admin_user(
 ):
     """Make a user an admin or remove admin status."""
     from misp_cli.cli.app import get_app
-    
+
     if not enable and not disable:
         typer.echo("Either --enable or --disable must be specified", err=True)
         raise typer.Exit(1)
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     action = "admin" if enable else "removeadmin"
     response = client.post_sync(f"/users/{action}/{user_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         action_text = "made admin" if enable else "removed from admin"
         typer.echo(f"User {user_id} {action_text} successfully")
@@ -345,18 +342,18 @@ def disable_user(
 ):
     """Disable a user."""
     from misp_cli.cli.app import get_app
-    
+
     if not force:
         typer.confirm(f"Are you sure you want to disable user {user_id}?", abort=True)
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.post_sync(f"/users/disable/{user_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"User {user_id} disabled successfully")
 
@@ -368,15 +365,15 @@ def enable_user(
 ):
     """Enable a user."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.post_sync(f"/users/enable/{user_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"User {user_id} enabled successfully")
 
@@ -388,14 +385,14 @@ def field_changes(
 ):
     """Show field changes for a user."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.get_sync(f"/users/fieldChanges/{user_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
-        _print_json(response)
+        print_json(response)

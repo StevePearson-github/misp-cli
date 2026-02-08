@@ -1,12 +1,12 @@
 """Event management commands for MISP CLI."""
 
 import json
-from datetime import date
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import typer
 from rich.table import Table
 
+from misp_cli.cli.output import print_csv, print_json
 from misp_cli.core.config import MISPProfile
 
 events_app = typer.Typer(
@@ -34,7 +34,13 @@ def events_callback(
         raise typer.Exit()
 
 
-def _get_output_format(config: MISPProfile, json_output: bool, table_output: bool, csv_output: bool = False, format_option: Optional[str] = None) -> str:
+def _get_output_format(
+    config: MISPProfile,
+    json_output: bool,
+    table_output: bool,
+    csv_output: bool = False,
+    format_option: str | None = None,
+) -> str:
     """Determine output format based on options and config."""
     if csv_output:
         return "csv"
@@ -47,29 +53,17 @@ def _get_output_format(config: MISPProfile, json_output: bool, table_output: boo
     return config.output_format
 
 
-def _print_csv(data: List[Dict], columns: Optional[List[str]] = None) -> None:
-    """Print data as CSV."""
-    from misp_cli.core.client import MISPCLient
-    csv_output = MISPCLient.format_as_csv(data, columns)
-    if csv_output:
-        typer.echo(csv_output)
-
-
-def _print_json(data: Any) -> None:
-    """Print data as formatted JSON."""
-    typer.echo(json.dumps(data, indent=2, default=str))
-
-
-def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
-    """Print data as a table."""
+def _print_table(data: list[dict], columns: list[str] | None = None) -> None:
+    """Print data as a table with N/A for None values."""
     if not data:
         typer.echo("No data available")
         return
-    
+
     from misp_cli.cli.app import get_app
+
     console = get_app().console
     table = Table(show_header=True, header_style="bold magenta")
-    
+
     # Add columns
     if columns:
         for col in columns:
@@ -77,7 +71,7 @@ def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
     else:
         for key in data[0].keys():
             table.add_column(key.replace("_", " ").title())
-    
+
     # Add rows
     for item in data:
         row = []
@@ -89,7 +83,7 @@ def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
             else:
                 row.append(str(value))
         table.add_row(*row)
-    
+
     console.print(table)
 
 
@@ -97,28 +91,38 @@ def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
 def list_events(
     limit: int = typer.Option(50, "-l", "--limit", help="Maximum number of events"),
     page: int = typer.Option(1, "-p", "--page", help="Page number"),
-    search: Optional[str] = typer.Option(None, "-s", "--search", help="Search query"),
-    org: Optional[str] = typer.Option(None, "-o", "--org", help="Organization filter"),
-    from_date: Optional[str] = typer.Option(None, "--from", help="Start date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 7d)"),
-    to_date: Optional[str] = typer.Option(None, "--to", help="End date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 14d)"),
-    last: Optional[str] = typer.Option(None, "--last", help="Relative time filter (e.g., 5d, 12h, 30m, 1617875568)"),
-    date: Optional[str] = typer.Option(None, "--date", help="Event date filter (YYYY-MM-DD)"),
-    timestamp: Optional[str] = typer.Option(None, "--timestamp", help="Modification timestamp filter"),
-    publish_timestamp: Optional[str] = typer.Option(None, "--publish-timestamp", help="Publication timestamp filter"),
+    search: str | None = typer.Option(None, "-s", "--search", help="Search query"),
+    org: str | None = typer.Option(None, "-o", "--org", help="Organization filter"),
+    from_date: str | None = typer.Option(
+        None, "--from", help="Start date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 7d)"
+    ),
+    to_date: str | None = typer.Option(
+        None, "--to", help="End date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 14d)"
+    ),
+    last: str | None = typer.Option(
+        None, "--last", help="Relative time filter (e.g., 5d, 12h, 30m, 1617875568)"
+    ),
+    date: str | None = typer.Option(None, "--date", help="Event date filter (YYYY-MM-DD)"),
+    timestamp: str | None = typer.Option(None, "--timestamp", help="Modification timestamp filter"),
+    publish_timestamp: str | None = typer.Option(
+        None, "--publish-timestamp", help="Publication timestamp filter"
+    ),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
-    format_option: Optional[str] = typer.Option(None, "--format", help="Output format (json, table, csv)"),
+    format_option: str | None = typer.Option(
+        None, "--format", help="Output format (json, table, csv)"
+    ),
     quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
 ):
     """List events with pagination and filtering."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
-    params: Dict[str, Any] = {
+
+    params: dict[str, Any] = {
         "limit": limit,
         "page": page,
     }
@@ -138,11 +142,11 @@ def list_events(
         params["timestamp"] = timestamp
     if publish_timestamp:
         params["publish_timestamp"] = publish_timestamp
-    
+
     response = client.get_sync("/events/index", params=params)
-    
+
     output_format = _get_output_format(config, json_output, table_output, csv_output, format_option)
-    
+
     # Unwrap nested Event structure: [{'Event': {...}}, ...] -> [{...}, ...]
     raw_events = response.get("events", response.get("data", []))
     if raw_events and isinstance(raw_events, list):
@@ -153,19 +157,19 @@ def list_events(
             events = raw_events
     else:
         events = raw_events
-    
+
     # Get pagination info from response
     total_count = response.get("total", len(events))
-    
+
     if not quiet:
         typer.echo(f"Showing {len(events)} of {total_count} event(s)")
-    
+
     if output_format == "csv":
-        _print_csv(events)
+        print_csv(events)
     elif output_format == "table":
         _print_table(events)
     else:
-        _print_json(events)
+        print_json(events)
 
 
 @events_app.command("show")
@@ -177,72 +181,95 @@ def show_event(
 ):
     """Show details of a specific event."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     params = {"context": 1} if context else {}
     response = client.get_sync(f"/events/view/{event_id}", params=params)
-    
+
     output_format = _get_output_format(config, json_output, table_output)
-    
+
     if output_format == "table":
         if isinstance(response, dict):
             _print_table([response])
         else:
-            _print_json(response)
+            print_json(response)
     else:
-        _print_json(response)
+        print_json(response)
 
 
 @events_app.command("create")
 def create_event(
     info: str = typer.Option(..., "-i", "--info", help="Event info/title"),
-    threat_level: int = typer.Option(2, "-t", "--threat-level", min=1, max=4, help="Threat level ID (1-4: 1=High, 2=Medium, 3=Low, 4=Undefined)"),
-    analysis: int = typer.Option(1, "-a", "--analysis", min=0, max=2, help="Analysis level (0=Initial, 1=Ongoing, 2=Completed)"),
-    distribution: int = typer.Option(5, "-d", "--distribution", min=0, max=5, help="Distribution (0=Your Organisation Only, 1=This Community Only, 2=Connected Communities, 3=All Communities, 4=Sharing Group, 5=Inherit From Event)"),
-    event_date: Optional[str] = typer.Option(None, "-e", "--date", help="Event date (YYYY-MM-DD)"),
-    org_id: Optional[int] = typer.Option(None, "-o", "--org-id", help="Organisation ID to create event for"),
+    threat_level: int = typer.Option(
+        2,
+        "-t",
+        "--threat-level",
+        min=1,
+        max=4,
+        help="Threat level ID (1-4: 1=High, 2=Medium, 3=Low, 4=Undefined)",
+    ),
+    analysis: int = typer.Option(
+        1,
+        "-a",
+        "--analysis",
+        min=0,
+        max=2,
+        help="Analysis level (0=Initial, 1=Ongoing, 2=Completed)",
+    ),
+    distribution: int = typer.Option(
+        5,
+        "-d",
+        "--distribution",
+        min=0,
+        max=5,
+        help="Distribution (0=Your Organisation Only, 1=This Community Only, 2=Connected Communities, 3=All Communities, 4=Sharing Group, 5=Inherit From Event)",
+    ),
+    event_date: str | None = typer.Option(None, "-e", "--date", help="Event date (YYYY-MM-DD)"),
+    org_id: int | None = typer.Option(
+        None, "-o", "--org-id", help="Organisation ID to create event for"
+    ),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
 ):
     """Create a new event in MISP."""
     from misp_cli.cli.app import get_app
     from misp_cli.core.exceptions import MISPAPIError
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     # Build event data structure for MISP API
-    data: Dict[str, Any] = {
+    data: dict[str, Any] = {
         "info": info,
         "threat_level_id": threat_level,
         "analysis": analysis,
         "distribution": distribution,
     }
-    
+
     if event_date:
         data["date"] = event_date
-    
+
     if org_id:
         data["org_id"] = org_id
-    
+
     try:
         response = client.post_sync("/events/add", data={"Event": data})
-        
+
         if config.output_format == "json" or json_output:
-            _print_json(response)
+            print_json(response)
         else:
             event_id = response.get("Event", {}).get("id", "Unknown")
             if not quiet:
                 typer.echo(f"Event created successfully: {event_id}")
     except MISPAPIError as e:
         if "Event name required" in str(e.message) or "info" in str(e.message).lower():
-            typer.echo(f"Error: Event info/title is required. Use --info or -i option.", err=True)
+            typer.echo("Error: Event info/title is required. Use --info or -i option.", err=True)
         elif "threat_level" in str(e.message).lower():
-            typer.echo(f"Error: Invalid threat level. Must be 1-4.", err=True)
+            typer.echo("Error: Invalid threat level. Must be 1-4.", err=True)
         else:
             typer.echo(f"Error creating event: {e.message}", err=True)
         raise typer.Exit(1)
@@ -256,18 +283,18 @@ def delete_event(
 ):
     """Delete an event."""
     from misp_cli.cli.app import get_app
-    
+
     if not force:
         typer.confirm(f"Are you sure you want to delete event {event_id}?", abort=True)
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.post_sync(f"/events/delete/{event_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"Event {event_id} deleted successfully")
 
@@ -279,15 +306,15 @@ def publish_event(
 ):
     """Publish an event."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.post_sync(f"/events/publish/{event_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"Event {event_id} published successfully")
 
@@ -299,15 +326,15 @@ def unpublish_event(
 ):
     """Unpublish an event."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.post_sync(f"/events/unpublish/{event_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"Event {event_id} unpublished successfully")
 
@@ -315,23 +342,31 @@ def unpublish_event(
 @events_app.command("search")
 def search_events(
     term: str = typer.Argument(..., help="Search term"),
-    from_date: Optional[str] = typer.Option(None, "--from", help="Start date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 7d)"),
-    to_date: Optional[str] = typer.Option(None, "--to", help="End date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 14d)"),
-    last: Optional[str] = typer.Option(None, "--last", help="Relative time filter (e.g., 5d, 12h, 30m, 1617875568)"),
-    date: Optional[str] = typer.Option(None, "--date", help="Event date filter (YYYY-MM-DD)"),
-    timestamp: Optional[str] = typer.Option(None, "--timestamp", help="Modification timestamp filter"),
-    publish_timestamp: Optional[str] = typer.Option(None, "--publish-timestamp", help="Publication timestamp filter"),
+    from_date: str | None = typer.Option(
+        None, "--from", help="Start date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 7d)"
+    ),
+    to_date: str | None = typer.Option(
+        None, "--to", help="End date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 14d)"
+    ),
+    last: str | None = typer.Option(
+        None, "--last", help="Relative time filter (e.g., 5d, 12h, 30m, 1617875568)"
+    ),
+    date: str | None = typer.Option(None, "--date", help="Event date filter (YYYY-MM-DD)"),
+    timestamp: str | None = typer.Option(None, "--timestamp", help="Modification timestamp filter"),
+    publish_timestamp: str | None = typer.Option(
+        None, "--publish-timestamp", help="Publication timestamp filter"
+    ),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
 ):
     """Search for events."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
-    data: Dict[str, Any] = {"search": term}
+
+    data: dict[str, Any] = {"search": term}
     if from_date:
         data["from"] = from_date
     if to_date:
@@ -344,11 +379,11 @@ def search_events(
         data["timestamp"] = timestamp
     if publish_timestamp:
         data["publish_timestamp"] = publish_timestamp
-    
+
     response = client.post_sync("/events/restSearch", data=data)
-    
+
     output_format = _get_output_format(config, json_output, table_output)
-    
+
     # Unwrap nested Event structure: [{'Event': {...}}, ...] -> [{...}, ...]
     raw_events = response.get("events", response.get("data", []))
     if raw_events and isinstance(raw_events, list):
@@ -359,45 +394,47 @@ def search_events(
             events = raw_events
     else:
         events = raw_events
-    
+
     if output_format == "table":
         _print_table(events)
     else:
-        _print_json(events)
+        print_json(events)
 
 
 @events_app.command("export")
 def export_event(
     event_id: int = typer.Argument(..., help="Event ID to export"),
-    format: str = typer.Option("json", "-f", "--format", help="Export format (json, csv, xml, striing, json2, rpz, misp2)"),
+    format: str = typer.Option(
+        "json", "-f", "--format", help="Export format (json, csv, xml, striing, json2, rpz, misp2)"
+    ),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
 ):
     """Export an event from MISP in the specified format."""
     from misp_cli.cli.app import get_app
     from misp_cli.core.exceptions import MISPAPIError
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     try:
         response = client.get_sync(f"/events/export/{event_id}", params={"format": format})
-        
+
         if config.output_format == "json" or json_output:
             # If response is a dict, print as JSON; otherwise print raw
             if isinstance(response, dict):
-                _print_json(response)
+                print_json(response)
             else:
                 try:
-                    _print_json(json.loads(response))
+                    print_json(json.loads(response))
                 except (json.JSONDecodeError, TypeError):
-                    _print_json({"raw": response})
+                    print_json({"raw": response})
         else:
             if isinstance(response, dict):
                 data = response.get("data", response)
                 if isinstance(data, dict):
-                    _print_json(data)
+                    print_json(data)
                 else:
                     typer.echo(str(data))
             else:
@@ -406,7 +443,10 @@ def export_event(
         if e.status_code == 404:
             typer.echo(f"Error: Event {event_id} not found", err=True)
         elif e.status_code == 403:
-            typer.echo(f"Error: Permission denied to export event {event_id}. Check your role permissions.", err=True)
+            typer.echo(
+                f"Error: Permission denied to export event {event_id}. Check your role permissions.",
+                err=True,
+            )
         else:
             typer.echo(f"Error exporting event: {e.message}", err=True)
         raise typer.Exit(1)
@@ -420,18 +460,18 @@ def list_event_attributes(
 ):
     """List attributes of an event."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.get_sync(f"/events/view/{event_id}", params={"includeAttributes": 1})
-    
+
     output_format = _get_output_format(config, json_output, table_output)
     event = response.get("Event", response)
     attributes = event.get("Attribute", [])
-    
+
     if output_format == "table":
         _print_table(attributes)
     else:
-        _print_json(attributes)
+        print_json(attributes)
