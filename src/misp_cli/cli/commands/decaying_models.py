@@ -1,12 +1,10 @@
 """Decaying model management commands for MISP CLI."""
 
-import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import typer
-from rich.table import Table
 
-from misp_cli.core.config import MISPProfile
+from misp_cli.cli.output import get_output_format, print_csv, print_json, print_table
 
 decaying_models_app = typer.Typer(
     name="decaying-models",
@@ -33,77 +31,37 @@ def decaying_models_callback(
         raise typer.Exit()
 
 
-def _get_output_format(config: MISPProfile, json_output: bool, table_output: bool) -> str:
-    """Determine output format based on options and config."""
-    if table_output:
-        return "table"
-    if json_output:
-        return "json"
-    return config.output_format
-
-
-def _print_json(data: Any) -> None:
-    """Print data as formatted JSON."""
-    typer.echo(json.dumps(data, indent=2, default=str))
-
-
-def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
-    """Print data as a table."""
-    if not data:
-        typer.echo("No data available")
-        return
-    
-    from misp_cli.cli.app import get_app
-    console = get_app().console
-    table = Table(show_header=True, header_style="bold magenta")
-    
-    if columns:
-        for col in columns:
-            table.add_column(col.replace("_", " ").title())
-    else:
-        for key in data[0].keys():
-            table.add_column(key.replace("_", " ").title())
-    
-    for item in data:
-        row = []
-        for value in item.values():
-            if isinstance(value, (dict, list)):
-                row.append(str(len(value)))
-            else:
-                row.append(str(value))
-        table.add_row(*row)
-    
-    console.print(table)
-
-
 @decaying_models_app.command("list")
 def list_decaying_models(
     limit: int = typer.Option(50, "-l", "--limit", help="Maximum number of models"),
     page: int = typer.Option(1, "-p", "--page", help="Page number"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
 ):
     """List all decaying models."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
-    params: Dict[str, Any] = {
+
+    params: dict[str, Any] = {
         "limit": limit,
         "page": page,
     }
-    
+
     response = client.get_sync("/decayingModels/index", params=params)
-    
-    output_format = _get_output_format(config, json_output, table_output)
+
+    output_format = get_output_format(config, json_output, table_output, csv_output)
     models = response.get("decayingModels", response.get("data", []))
-    
-    if output_format == "table":
-        _print_table(models)
+
+    if output_format == "csv":
+        print_csv(models)
+    elif output_format == "table":
+        print_table(models)
     else:
-        _print_json(models)
+        print_json(models)
 
 
 @decaying_models_app.command("show")
@@ -113,89 +71,141 @@ def show_decaying_model(
 ):
     """Show details of a specific decaying model."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.get_sync(f"/decayingModels/view/{model_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         if isinstance(response, dict):
-            _print_table([response])
+            print_table([response])
         else:
-            _print_json(response)
+            print_json(response)
 
 
-@decaying_models_app.command("toggle")
-def toggle_decaying_model(
-    model_id: int = typer.Argument(..., help="Model ID to toggle"),
-    enable: bool = typer.Option(False, "--enable", help="Enable the model"),
-    disable: bool = typer.Option(False, "--disable", help="Disable the model"),
+@decaying_models_app.command("enable")
+def enable_decaying_model(
+    model_id: int = typer.Argument(..., help="Model ID to enable"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
-    """Enable or disable a decaying model."""
+    """Enable a decaying model."""
     from misp_cli.cli.app import get_app
-    
-    if not enable and not disable:
-        typer.echo("Either --enable or --disable must be specified", err=True)
+
+    app = get_app()
+    config = app.profile
+    client = app.client
+
+    response = client.post_sync(f"/decayingModels/enable/{model_id}")
+
+    if config.output_format == "json" or json_output:
+        print_json(response)
+    else:
+        typer.echo(f"Decaying model {model_id} enabled")
+
+
+@decaying_models_app.command("disable")
+def disable_decaying_model(
+    model_id: int = typer.Argument(..., help="Model ID to disable"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Disable a decaying model."""
+    from misp_cli.cli.app import get_app
+
+    app = get_app()
+    config = app.profile
+    client = app.client
+
+    response = client.post_sync(f"/decayingModels/disable/{model_id}")
+
+    if config.output_format == "json" or json_output:
+        print_json(response)
+    else:
+        typer.echo(f"Decaying model {model_id} disabled")
+
+
+@decaying_models_app.command("import")
+def import_decaying_model(
+    model_file: str = typer.Argument(..., help="Path to model file (JSON)"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Import a decaying model from a JSON file."""
+    import json as json_module
+
+    from misp_cli.cli.app import get_app
+
+    app = get_app()
+    config = app.profile
+    client = app.client
+
+    try:
+        with open(model_file) as f:
+            model_data = json_module.load(f)
+    except FileNotFoundError:
+        typer.echo(f"Error: File {model_file} not found", err=True)
         raise typer.Exit(1)
-    
-    app = get_app()
-    config = app.profile
-    client = app.client
-    
-    action = "enable" if enable else "disable"
-    response = client.post_sync(f"/decayingModels/{action}/{model_id}")
-    
-    if config.output_format == "json" or json_output:
-        _print_json(response)
-    else:
-        typer.echo(f"Decaying model {model_id} {action}d successfully")
+    except json_module.JSONDecodeError:
+        typer.echo(f"Error: Invalid JSON in {model_file}", err=True)
+        raise typer.Exit(1)
 
+    response = client.post_sync("/decayingModels/import", data={"DecayingModel": model_data})
 
-@decaying_models_app.command("compute")
-def compute_score(
-    model_id: int = typer.Argument(..., help="Model ID"),
-    value: str = typer.Argument(..., help="Value to compute score for"),
-    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
-):
-    """Compute score for a value using a decaying model."""
-    from misp_cli.cli.app import get_app
-    
-    app = get_app()
-    config = app.profile
-    client = app.client
-    
-    response = client.get_sync(
-        f"/decayingModels/computeScore/{model_id}",
-        params={"value": value}
-    )
-    
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
-        result = response.get("DecayingModel", {})
-        typer.echo(f"Score: {result.get('score', 'N/A')}")
+        model_id = response.get("DecayingModel", {}).get("id", "Unknown")
+        typer.echo(f"Decaying model imported successfully: {model_id}")
 
 
 @decaying_models_app.command("export")
-def export_model(
+def export_decaying_model(
     model_id: int = typer.Argument(..., help="Model ID to export"),
+    output_file: str | None = typer.Option(None, "-o", "--output", help="Output file path"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
-    """Export a decaying model."""
+    """Export a decaying model to a JSON file."""
+    import json as json_module
+
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.get_sync(f"/decayingModels/export/{model_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
+    elif output_file:
+        with open(output_file, "w") as f:
+            json_module.dump(response, f, indent=2)
+        typer.echo(f"Exported to {output_file}")
     else:
-        _print_json(response)
+        print_json(response)
+
+
+@decaying_models_app.command("delete")
+def delete_decaying_model(
+    model_id: int = typer.Argument(..., help="Model ID to delete"),
+    force: bool = typer.Option(False, "-f", "--force", help="Force deletion without confirmation"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Delete a decaying model."""
+    from misp_cli.cli.app import get_app
+
+    if not force:
+        typer.confirm(f"Are you sure you want to delete decaying model {model_id}?", abort=True)
+
+    app = get_app()
+    config = app.profile
+    client = app.client
+
+    response = client.post_sync(f"/decayingModels/delete/{model_id}")
+
+    if config.output_format == "json" or json_output:
+        print_json(response)
+    else:
+        typer.echo(f"Decaying model {model_id} deleted successfully")

@@ -1,12 +1,11 @@
 """Feed management commands for MISP CLI."""
 
-import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import typer
 from rich.table import Table
 
-from misp_cli.core.config import MISPProfile
+from misp_cli.cli.output import get_output_format, print_csv, print_json
 
 feeds_app = typer.Typer(
     name="feeds",
@@ -33,37 +32,24 @@ def feeds_callback(
         raise typer.Exit()
 
 
-def _get_output_format(config: MISPProfile, json_output: bool, table_output: bool) -> str:
-    """Determine output format based on options and config."""
-    if table_output:
-        return "table"
-    if json_output:
-        return "json"
-    return config.output_format
-
-
-def _print_json(data: Any) -> None:
-    """Print data as formatted JSON."""
-    typer.echo(json.dumps(data, indent=2, default=str))
-
-
-def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
-    """Print data as a table."""
+def _print_table(data: list[dict], columns: list[str] | None = None) -> None:
+    """Print data as a table with N/A for None values."""
     if not data:
         typer.echo("No data available")
         return
-    
+
     from misp_cli.cli.app import get_app
+
     console = get_app().console
     table = Table(show_header=True, header_style="bold magenta")
-    
+
     if columns:
         for col in columns:
             table.add_column(col.replace("_", " ").title())
     else:
         for key in data[0].keys():
             table.add_column(key.replace("_", " ").title())
-    
+
     for item in data:
         row = []
         for value in item.values():
@@ -74,7 +60,7 @@ def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
             else:
                 row.append(str(value))
         table.add_row(*row)
-    
+
     console.print(table)
 
 
@@ -85,26 +71,27 @@ def list_feeds(
     enabled_only: bool = typer.Option(False, "--enabled", help="Show only enabled feeds"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
     quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
 ):
     """List all feeds."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
-    params: Dict[str, Any] = {
+
+    params: dict[str, Any] = {
         "limit": limit,
         "page": page,
     }
     if enabled_only:
         params["enabled"] = 1
-    
+
     response = client.get_sync("/feeds/index", params=params)
-    
-    output_format = _get_output_format(config, json_output, table_output)
-    
+
+    output_format = get_output_format(config, json_output, table_output, csv_output)
+
     # Unwrap nested Feed structure: [{'Feed': {...}}, ...] -> [{...}, ...]
     raw_feeds = response.get("feeds", response.get("data", []))
     if raw_feeds and isinstance(raw_feeds, list):
@@ -115,14 +102,16 @@ def list_feeds(
             feeds = raw_feeds
     else:
         feeds = raw_feeds
-    
+
     if not quiet:
         typer.echo(f"Found {len(feeds)} feed(s)")
-    
-    if output_format == "table":
+
+    if output_format == "csv":
+        print_csv(feeds)
+    elif output_format == "table":
         _print_table(feeds)
     else:
-        _print_json(feeds)
+        print_json(feeds)
 
 
 @feeds_app.command("show")
@@ -132,20 +121,20 @@ def show_feed(
 ):
     """Show details of a specific feed."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.get_sync(f"/feeds/view/{feed_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         if isinstance(response, dict):
             _print_table([response])
         else:
-            _print_json(response)
+            print_json(response)
 
 
 @feeds_app.command("create")
@@ -153,29 +142,31 @@ def create_feed(
     name: str = typer.Option(..., "-n", "--name", help="Feed name"),
     url: str = typer.Option(..., "-u", "--url", help="Feed URL"),
     provider: str = typer.Option(..., "-p", "--provider", help="Provider name"),
-    format_type: str = typer.Option("misp", "-f", "--format", help="Feed format (misp, freetext, csv)"),
+    format_type: str = typer.Option(
+        "misp", "-f", "--format", help="Feed format (misp, freetext, csv)"
+    ),
     enabled: bool = typer.Option(False, "--enabled", help="Enable feed after creation"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
     """Create a new feed."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
-    data: Dict[str, Any] = {
+
+    data: dict[str, Any] = {
         "name": name,
         "url": url,
         "provider": provider,
         "source_format": format_type,
         "enabled": enabled,
     }
-    
+
     response = client.post_sync("/feeds/add", data={"Feed": data})
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         feed_id = response.get("Feed", {}).get("id", "Unknown")
         typer.echo(f"Feed created successfully: {feed_id}")
@@ -184,20 +175,20 @@ def create_feed(
 @feeds_app.command("edit")
 def edit_feed(
     feed_id: int = typer.Argument(..., help="Feed ID to edit"),
-    name: Optional[str] = typer.Option(None, "-n", "--name", help="New name"),
-    url: Optional[str] = typer.Option(None, "-u", "--url", help="New URL"),
-    provider: Optional[str] = typer.Option(None, "-p", "--provider", help="New provider"),
-    enabled: Optional[bool] = typer.Option(None, "--enabled", help="Enable/disable feed"),
+    name: str | None = typer.Option(None, "-n", "--name", help="New name"),
+    url: str | None = typer.Option(None, "-u", "--url", help="New URL"),
+    provider: str | None = typer.Option(None, "-p", "--provider", help="New provider"),
+    enabled: bool | None = typer.Option(None, "--enabled", help="Enable/disable feed"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
     """Edit a feed."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
-    data: Dict[str, Any] = {}
+
+    data: dict[str, Any] = {}
     if name:
         data["name"] = name
     if url:
@@ -206,15 +197,15 @@ def edit_feed(
         data["provider"] = provider
     if enabled is not None:
         data["enabled"] = enabled
-    
+
     if not data:
         typer.echo("No changes specified", err=True)
         raise typer.Exit(1)
-    
+
     response = client.post_sync(f"/feeds/edit/{feed_id}", data={"Feed": data})
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"Feed {feed_id} updated successfully")
 
@@ -227,18 +218,18 @@ def delete_feed(
 ):
     """Delete a feed."""
     from misp_cli.cli.app import get_app
-    
+
     if not force:
         typer.confirm(f"Are you sure you want to delete feed {feed_id}?", abort=True)
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.post_sync(f"/feeds/delete/{feed_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"Feed {feed_id} deleted successfully")
 
@@ -250,15 +241,15 @@ def fetch_feed(
 ):
     """Fetch events from a feed."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.get_sync(f"/feeds/fetch/{feed_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"Feed {feed_id} fetched successfully")
 
@@ -270,15 +261,15 @@ def cache_feed(
 ):
     """Cache a feed locally."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.get_sync(f"/feeds/cache/{feed_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"Feed {feed_id} cached successfully")
 
@@ -290,15 +281,15 @@ def enable_feed(
 ):
     """Enable a feed."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.post_sync(f"/feeds/enable/{feed_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"Feed {feed_id} enabled successfully")
 
@@ -310,15 +301,15 @@ def disable_feed(
 ):
     """Disable a feed."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.post_sync(f"/feeds/disable/{feed_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"Feed {feed_id} disabled successfully")
 
@@ -330,15 +321,15 @@ def import_feed(
 ):
     """Import events from a feed."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.get_sync(f"/feeds/import/{feed_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         typer.echo(f"Events imported from feed {feed_id} successfully")
 
@@ -350,15 +341,15 @@ def test_feed(
 ):
     """Test a feed connection."""
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     config = app.profile
     client = app.client
-    
+
     response = client.get_sync(f"/feeds/test/{feed_id}")
-    
+
     if config.output_format == "json" or json_output:
-        _print_json(response)
+        print_json(response)
     else:
         result = response.get("Feed", {}).get("test", {})
         if result.get("status") == "OK":
