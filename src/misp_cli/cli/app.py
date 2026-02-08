@@ -13,7 +13,7 @@ from misp_cli.core.exceptions import MISPConfigurationError
 app = typer.Typer(
     name="misp-cli",
     help="MISP CLI - Command-line interface for MISP",
-    add_completion=False,
+    add_completion=True,
     add_help_option=True,
 )
 
@@ -116,16 +116,16 @@ def callback(
     # Skip initialization for config --generate
     if "config" in sys.argv and "--generate" in sys.argv:
         return
-    
+
     # Check if help was requested
     if help and not ctx.resilient_parsing:
         typer.echo(ctx.get_help())
         raise typer.Exit()
-    
+
     # Skip initialization during help/parsing
     if ctx.resilient_parsing:
         return
-    
+
     try:
         misp_app = MISPApp(
             config_path=config,
@@ -149,12 +149,12 @@ def version(
     if help:
         typer.echo(ctx.get_help())
         raise typer.Exit()
-    
+
     from misp_cli.cli.app import get_app
-    
+
     app = get_app()
     client = app.client
-    
+
     response = client.get_sync("/servers/getVersion")
     typer.echo(response)
 
@@ -171,7 +171,7 @@ def config_command(
     if help:
         typer.echo(ctx.get_help())
         raise typer.Exit()
-    
+
     # Handle generate separately as it doesn't require existing config
     if generate:
         try:
@@ -183,7 +183,7 @@ def config_command(
         except Exception as e:
             typer.echo(f"Failed to create config: {e}", err=True)
             raise typer.Exit(2)
-    
+
     app = get_app()
 
     if show:
@@ -236,7 +236,7 @@ def _register_commands():
     from misp_cli.cli.commands.feeds_manage_feeds import manage_feeds_app
     from misp_cli.cli.commands.logs import logs_app
     from misp_cli.cli.commands.stats import stats_app
-    
+
     # Add command groups
     app.add_typer(events_app, name="events")
     app.add_typer(attributes_app, name="attributes")
@@ -260,6 +260,7 @@ def _register_commands():
     app.add_typer(manage_feeds_app, name="manage-feeds")
     app.add_typer(logs_app, name="logs")
     app.add_typer(stats_app, name="stats")
+
 
 # Register commands when module is imported
 _register_commands()

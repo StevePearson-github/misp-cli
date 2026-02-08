@@ -61,6 +61,36 @@ pip install -e ".[dev]"
 misp-cli --help
 ```
 
+## Shell Completion
+
+The CLI supports shell completion for commands and options.
+
+### Install Completions Permanently
+
+```bash
+# For bash
+misp-cli --install-completion bash
+
+# For zsh
+misp-cli --install-completion zsh
+
+# For fish
+misp-cli --install-completion fish
+```
+
+### Use Completions Temporarily
+
+```bash
+# For bash
+source <(misp-cli --show-completion bash)
+
+# For zsh
+eval "$(misp-cli --show-completion zsh)"
+
+# For fish
+misp-cli --show-completion fish | source
+```
+
 ## Configuration
 
 ### Configuration File
