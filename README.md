@@ -35,7 +35,7 @@ A comprehensive command-line interface for interacting with [MISP](https://www.m
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/misp-cli.git
+git clone https://github.com/StevePearson-github/misp-cli.git
 cd misp-cli
 
 # Install using uv (recommended)
@@ -111,6 +111,7 @@ The CLI uses an INI-style configuration file (`.misp-cli.conf`) that supports mu
 
 [DEFAULT]
 ; Default profile settings (applies to all profiles)
+default_profile = default
 verify_ssl = true
 timeout = 30
 output_format = json
