@@ -234,6 +234,8 @@ def _register_commands():
     from misp_cli.cli.commands.attribute_blocklists import attribute_blocklists_app
     from misp_cli.cli.commands.news import news_app
     from misp_cli.cli.commands.feeds_manage_feeds import manage_feeds_app
+    from misp_cli.cli.commands.logs import logs_app
+    from misp_cli.cli.commands.stats import stats_app
     
     # Add command groups
     app.add_typer(events_app, name="events")
@@ -256,6 +258,8 @@ def _register_commands():
     app.add_typer(attribute_blocklists_app, name="attribute-blocklists")
     app.add_typer(news_app, name="news")
     app.add_typer(manage_feeds_app, name="manage-feeds")
+    app.add_typer(logs_app, name="logs")
+    app.add_typer(stats_app, name="stats")
 
 # Register commands when module is imported
 _register_commands()
