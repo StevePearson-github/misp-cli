@@ -305,6 +305,15 @@ misp-cli --output table events list
 | `sharing-groups list` | List sharing groups |
 | `sharing-groups show` | Show sharing group details |
 
+### Log Management
+
+| Command | Description |
+|---------|-------------|
+| `logs list` | List MISP logs with optional filters |
+| `logs search` | Search logs by title or description |
+| `logs user` | Get logs for a specific user |
+| `logs model` | Get logs for a specific model type |
+
 ### Other Commands
 
 | Command | Description |
@@ -319,6 +328,10 @@ misp-cli --output table events list
 | `event-blocklists list` | List event blocklists |
 | `attribute-blocklists list` | List attribute blocklists |
 | `news list` | List news |
+| `stats system` | System statistics |
+| `stats users` | User statistics |
+| `stats orgs` | Organisation statistics |
+| `stats tags` | Tag statistics |
 
 ## Examples
 
@@ -471,6 +484,59 @@ misp-cli events list --json
 
 # Override output format globally
 misp-cli --output table events list
+```
+
+### Log Operations
+
+```bash
+# List all logs with pagination
+misp-cli logs list --limit 50 --page 1
+
+# Filter logs by model type
+misp-cli logs list --model Event
+
+# Filter logs by action
+misp-cli logs list --action add
+
+# Filter logs by user email
+misp-cli logs list --email admin@example.com
+
+# Filter logs by organisation
+misp-cli logs list --org "ACME Corp"
+
+# Filter logs by IP address
+misp-cli logs list --ip 192.168.1.1
+
+# Search logs by title
+misp-cli logs search "event published"
+
+# Get logs for a specific user
+misp-cli logs user 1
+
+# Get logs for a specific model type
+misp-cli logs model Event
+
+# Output logs in table format
+misp-cli logs list --table
+
+# Output logs as JSON
+misp-cli logs list --json
+```
+
+### Statistics Operations
+
+```bash
+# Get system statistics
+misp-cli stats system
+
+# Get user statistics
+misp-cli stats users
+
+# Get organisation statistics
+misp-cli stats orgs
+
+# Get tag statistics
+misp-cli stats tags
 ```
 
 ## Date Filtering
