@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation
+    url: https://github.com/StevePearson-github/misp-cli#readme
+    about: Check the README for usage instructions and examples
+  - name: 💬 Discussions
+    url: https://github.com/StevePearson-github/misp-cli/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 🔐 Security Vulnerability
+    url: https://github.com/StevePearson-github/misp-cli/security/advisories/new
+    about: Report security vulnerabilities privately (please do not use public issues)
