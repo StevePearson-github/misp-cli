@@ -109,7 +109,8 @@ class ConfigManager:
         # Parse DEFAULT section first
         if "DEFAULT" in parser:
             default_section = dict(parser["DEFAULT"])
-            # Store default values for inheritance
+            if "default_profile" in default_section:
+                config_data["default_profile"] = default_section["default_profile"].strip()
         
         # Parse profile sections
         for section in parser.sections():
@@ -145,12 +146,6 @@ class ConfigManager:
                 ).strip()
                 
                 config_data["profiles"][profile_name] = profile_data
-            
-            elif section == "DEFAULT":
-                # Handle DEFAULT section as implicit "default" profile
-                default_section = dict(parser["DEFAULT"])
-                if "default_profile" in default_section:
-                    config_data["default_profile"] = default_section["default_profile"].strip()
         
         # Check for legacy [default] section (without profile: prefix)
         if "default" in parser and not any(

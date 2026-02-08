@@ -77,7 +77,7 @@ git clone <repository-url>
 cd misp-cli
 
 # Install with uv (recommended)
-uv pip install -e .
+uv tool install .
 
 # Or with pip
 pip install -e .

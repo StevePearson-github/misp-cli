@@ -29,7 +29,7 @@ A comprehensive command-line interface for interacting with [MISP](https://www.m
 ### Prerequisites
 
 - Python 3.11 or higher
-- pip or uv package manager
+- [uv](https://docs.astral.sh/uv/) package manager (recommended)
 
 ### Install from Source
 
@@ -38,21 +38,21 @@ A comprehensive command-line interface for interacting with [MISP](https://www.m
 git clone https://github.com/your-org/misp-cli.git
 cd misp-cli
 
-# Install using pip
-pip install .
+# Install using uv (recommended)
+uv tool install .
 
-# Or install using uv (recommended)
-uv pip install .
+# Or install using pip
+pip install .
 ```
 
 ### Install Development Dependencies
 
 ```bash
-# Install with development dependencies
-pip install -e ".[dev]"
+# Install with development dependencies using uv
+uv install --dev .
 
-# Or with uv
-uv pip install -e ".[dev]"
+# Or with pip
+pip install -e ".[dev]"
 ```
 
 ### Verify Installation

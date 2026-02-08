@@ -14,6 +14,7 @@ app = typer.Typer(
     name="misp-cli",
     help="MISP CLI - Command-line interface for MISP",
     add_completion=False,
+    add_help_option=True,
 )
 
 
@@ -28,10 +29,8 @@ class MISPApp:
         profile: Optional[str] = None,
         output_format: Optional[str] = None,
         no_color: bool = False,
-        verbose: bool = False,
     ):
         self.console = Console(no_color=no_color)
-        self.verbose = verbose
         self.output_format = output_format
 
         # Load configuration
@@ -104,20 +103,27 @@ def callback(
         "--no-color",
         help="Disable colored output",
     ),
-    verbose: bool = typer.Option(
+    help: bool = typer.Option(
         False,
-        "-v",
-        "--verbose",
-        help="Enable verbose output",
+        "-h",
+        "--help",
+        help="Show this help message",
+        is_eager=True,
+        callback=lambda ctx, value: ctx.get_help() if value and not ctx.resilient_parsing else None,
     ),
 ):
     """MISP CLI - Command-line interface for MISP."""
-    # Skip initialization for help commands and config --generate
-    if "--help" in sys.argv or "-h" in sys.argv:
+    # Skip initialization for config --generate
+    if "config" in sys.argv and "--generate" in sys.argv:
         return
     
-    # Check if this is config --generate (doesn't require existing config)
-    if "config" in sys.argv and "--generate" in sys.argv:
+    # Check if help was requested
+    if help and not ctx.resilient_parsing:
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
+    
+    # Skip initialization during help/parsing
+    if ctx.resilient_parsing:
         return
     
     try:
@@ -126,7 +132,6 @@ def callback(
             profile=profile,
             output_format=output,
             no_color=no_color,
-            verbose=verbose,
         )
         set_app(misp_app)
     except MISPConfigurationError as e:
@@ -136,8 +141,15 @@ def callback(
 
 
 @app.command("version")
-def version():
+def version(
+    ctx: typer.Context,
+    help: bool = typer.Option(False, "-h", "--help", help="Show this help message", is_eager=True),
+):
     """Show the MISP server version."""
+    if help:
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
+    
     from misp_cli.cli.app import get_app
     
     app = get_app()
@@ -153,8 +165,13 @@ def config_command(
     show: bool = typer.Option(False, "--show", help="Show current configuration"),
     validate: bool = typer.Option(False, "--validate", help="Validate configuration file"),
     generate: bool = typer.Option(False, "--generate", help="Generate default config file"),
+    help: bool = typer.Option(False, "-h", "--help", help="Show this help message", is_eager=True),
 ):
     """Manage MISP CLI configuration."""
+    if help:
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
+    
     # Handle generate separately as it doesn't require existing config
     if generate:
         try:
