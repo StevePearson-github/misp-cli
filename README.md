@@ -206,10 +206,10 @@ misp-cli [OPTIONS] COMMAND [ARGS]...
 |--------|-------------|
 | `-c, --config FILE` | Path to configuration file |
 | `-p, --profile TEXT` | Profile name to use from configuration |
-| `-o, --output FORMAT` | Output format (json, table, csv) |
 | `--no-color` | Disable colored output |
-| `-v, --verbose` | Enable verbose output |
-| `--help` | Show help message |
+| `-h, --help` | Show help message |
+| `--install-completion` | Install shell completion for the current shell |
+| `--show-completion` | Show shell completion to copy or customize installation |
 
 ### Basic Commands
 
