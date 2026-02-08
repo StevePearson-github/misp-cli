@@ -67,6 +67,15 @@ class MISPConnectionError(MISPError):
 class MISPAuthenticationError(MISPAPIError):
     """Authentication/authorization errors."""
     
+    # Permission-related error messages
+    PERMISSION_ERRORS = {
+        "Permission denied": "You don't have permission to perform this action. Contact your MISP administrator to request the required role/permissions.",
+        "Access denied": "Access denied. Your current role may not have sufficient privileges.",
+        "Role": "Your user role doesn't have the required permissions.",
+        "Admin": "This action requires administrator privileges.",
+        "readonly": "The system is in read-only mode. Changes are not allowed.",
+    }
+    
     def __init__(
         self,
         message: str,
@@ -75,14 +84,29 @@ class MISPAuthenticationError(MISPAPIError):
         error_type: Optional[str] = None,
         details: Optional[Dict[str, Any]] = None,
     ):
+        # Enhance message with suggestions for permission errors
+        enhanced_message = message
+        for error_pattern, suggestion in self.PERMISSION_ERRORS.items():
+            if error_pattern.lower() in message.lower():
+                enhanced_message = f"{message}\nSuggestion: {suggestion}"
+                break
+        
         super().__init__(
-            message,
+            enhanced_message,
             status_code=status_code,
             response_body=response_body,
             error_type=error_type or "Authentication Error",
             details=details,
         )
         self.exit_code = 5
+    
+    def __str__(self) -> str:
+        base = super().__str__()
+        # Clean up duplicate suggestions
+        lines = base.split('\n')
+        if len(lines) > 1:
+            return f"{lines[0]}\n{lines[1]}"
+        return base
 
 
 class MISPValidationError(MISPError):

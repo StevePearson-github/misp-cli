@@ -67,7 +67,9 @@ def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
     for item in data:
         row = []
         for value in item.values():
-            if isinstance(value, (dict, list)):
+            if value is None:
+                row.append("N/A")
+            elif isinstance(value, (dict, list)):
                 row.append(str(len(value)))
             else:
                 row.append(str(value))
@@ -82,6 +84,7 @@ def list_galaxies(
     page: int = typer.Option(1, "-p", "--page", help="Page number"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
 ):
     """List all galaxies."""
     from misp_cli.cli.app import get_app
@@ -98,7 +101,20 @@ def list_galaxies(
     response = client.get_sync("/galaxies/index", params=params)
     
     output_format = _get_output_format(config, json_output, table_output)
-    galaxies = response.get("galaxies", response.get("data", []))
+    
+    # Unwrap nested Galaxy structure: [{'Galaxy': {...}}, ...] -> [{...}, ...]
+    raw_galaxies = response.get("galaxies", response.get("data", []))
+    if raw_galaxies and isinstance(raw_galaxies, list):
+        # Check if each item is wrapped in "Galaxy" key
+        if all(isinstance(item, dict) and "Galaxy" in item for item in raw_galaxies):
+            galaxies = [item["Galaxy"] for item in raw_galaxies]
+        else:
+            galaxies = raw_galaxies
+    else:
+        galaxies = raw_galaxies
+    
+    if not quiet:
+        typer.echo(f"Found {len(galaxies)} galaxy(ies)")
     
     if output_format == "table":
         _print_table(galaxies)
@@ -193,7 +209,17 @@ def search_galaxies(
     response = client.get_sync("/galaxies/index", params={"search": term})
     
     output_format = _get_output_format(config, json_output, table_output)
-    galaxies = response.get("galaxies", response.get("data", []))
+    
+    # Unwrap nested Galaxy structure: [{'Galaxy': {...}}, ...] -> [{...}, ...]
+    raw_galaxies = response.get("galaxies", response.get("data", []))
+    if raw_galaxies and isinstance(raw_galaxies, list):
+        # Check if each item is wrapped in "Galaxy" key
+        if all(isinstance(item, dict) and "Galaxy" in item for item in raw_galaxies):
+            galaxies = [item["Galaxy"] for item in raw_galaxies]
+        else:
+            galaxies = raw_galaxies
+    else:
+        galaxies = raw_galaxies
     
     if output_format == "table":
         _print_table(galaxies)

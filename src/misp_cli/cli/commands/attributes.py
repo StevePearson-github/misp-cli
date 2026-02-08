@@ -67,7 +67,9 @@ def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
     for item in data:
         row = []
         for value in item.values():
-            if isinstance(value, (dict, list)):
+            if value is None:
+                row.append("N/A")
+            elif isinstance(value, (dict, list)):
                 row.append(str(len(value)))
             else:
                 row.append(str(value))
@@ -116,7 +118,17 @@ def list_attributes(
     response = client.get_sync("/attributes/index", params=params)
     
     output_format = _get_output_format(config, json_output, table_output)
-    attributes = response.get("attributes", response.get("data", []))
+    
+    # Unwrap nested Attribute structure: [{'Attribute': {...}}, ...] -> [{...}, ...]
+    raw_attributes = response.get("attributes", response.get("data", []))
+    if raw_attributes and isinstance(raw_attributes, list):
+        # Check if each item is wrapped in "Attribute" key
+        if all(isinstance(item, dict) and "Attribute" in item for item in raw_attributes):
+            attributes = [item["Attribute"] for item in raw_attributes]
+        else:
+            attributes = raw_attributes
+    else:
+        attributes = raw_attributes
     
     if output_format == "table":
         _print_table(attributes)
@@ -269,7 +281,17 @@ def search_attributes(
     response = client.post_sync("/attributes/restSearch", data=data)
     
     output_format = _get_output_format(config, json_output, table_output)
-    attributes = response.get("attributes", response.get("data", []))
+    
+    # Unwrap nested Attribute structure: [{'Attribute': {...}}, ...] -> [{...}, ...]
+    raw_attributes = response.get("attributes", response.get("data", []))
+    if raw_attributes and isinstance(raw_attributes, list):
+        # Check if each item is wrapped in "Attribute" key
+        if all(isinstance(item, dict) and "Attribute" in item for item in raw_attributes):
+            attributes = [item["Attribute"] for item in raw_attributes]
+        else:
+            attributes = raw_attributes
+    else:
+        attributes = raw_attributes
     
     if output_format == "table":
         _print_table(attributes)
@@ -280,6 +302,7 @@ def search_attributes(
 @attributes_app.command("types")
 def list_attribute_types(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
 ):
     """List all available attribute types."""
     from misp_cli.cli.app import get_app
@@ -289,13 +312,22 @@ def list_attribute_types(
     client = app.client
     
     response = client.get_sync("/attributes/describeTypes")
-    types = response.get("result", response.get("types", []))
+    result = response.get("result", {})
+    
+    # Extract types array from the response
+    types = result.get("types", [])
+    
+    # If types is empty, try alternative extraction
+    if not types:
+        # Some MISP versions return types directly in response
+        types = response.get("types", [])
     
     if config.output_format == "json" or json_output:
         _print_json(types)
     else:
-        typer.echo("Available attribute types:")
-        for t in types:
+        if not quiet:
+            typer.echo(f"Available attribute types ({len(types)} total):")
+        for t in sorted(types):
             typer.echo(f"  - {t}")
 
 

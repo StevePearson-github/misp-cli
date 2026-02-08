@@ -67,7 +67,9 @@ def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
     for item in data:
         row = []
         for value in item.values():
-            if isinstance(value, (dict, list)):
+            if value is None:
+                row.append("N/A")
+            elif isinstance(value, (dict, list)):
                 row.append(str(len(value)))
             else:
                 row.append(str(value))
@@ -82,6 +84,7 @@ def list_users(
     page: int = typer.Option(1, "-p", "--page", help="Page number"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
 ):
     """List all users."""
     from misp_cli.cli.app import get_app
@@ -98,7 +101,20 @@ def list_users(
     response = client.post_sync("/admin/users/index", data=params)
     
     output_format = _get_output_format(config, json_output, table_output)
-    users = response if isinstance(response, list) else response.get("User", response.get("users", response.get("data", [])))
+    
+    # Unwrap nested User structure: [{'User': {...}}, ...] -> [{...}, ...]
+    raw_users = response if isinstance(response, list) else response.get("User", response.get("users", response.get("data", [])))
+    if raw_users and isinstance(raw_users, list):
+        # Check if each item is wrapped in "User" key
+        if all(isinstance(item, dict) and "User" in item for item in raw_users):
+            users = [item["User"] for item in raw_users]
+        else:
+            users = raw_users
+    else:
+        users = raw_users if isinstance(raw_users, list) else []
+    
+    if not quiet:
+        typer.echo(f"Found {len(users)} user(s)")
     
     if output_format == "table":
         _print_table(users)
@@ -275,7 +291,17 @@ def list_org_users(
     response = client.post_sync("/admin/users/index", data={"org_id": org_id})
     
     output_format = _get_output_format(config, json_output, table_output)
-    users = response if isinstance(response, list) else response.get("User", response.get("users", response.get("data", [])))
+    
+    # Unwrap nested User structure: [{'User': {...}}, ...] -> [{...}, ...]
+    raw_users = response if isinstance(response, list) else response.get("User", response.get("users", response.get("data", [])))
+    if raw_users and isinstance(raw_users, list):
+        # Check if each item is wrapped in "User" key
+        if all(isinstance(item, dict) and "User" in item for item in raw_users):
+            users = [item["User"] for item in raw_users]
+        else:
+            users = raw_users
+    else:
+        users = raw_users if isinstance(raw_users, list) else []
     
     if output_format == "table":
         _print_table(users)

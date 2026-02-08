@@ -34,13 +34,25 @@ def events_callback(
         raise typer.Exit()
 
 
-def _get_output_format(config: MISPProfile, json_output: bool, table_output: bool) -> str:
+def _get_output_format(config: MISPProfile, json_output: bool, table_output: bool, csv_output: bool = False, format_option: Optional[str] = None) -> str:
     """Determine output format based on options and config."""
+    if csv_output:
+        return "csv"
     if table_output:
         return "table"
     if json_output:
         return "json"
+    if format_option:
+        return format_option
     return config.output_format
+
+
+def _print_csv(data: List[Dict], columns: Optional[List[str]] = None) -> None:
+    """Print data as CSV."""
+    from misp_cli.core.client import MISPCLient
+    csv_output = MISPCLient.format_as_csv(data, columns)
+    if csv_output:
+        typer.echo(csv_output)
 
 
 def _print_json(data: Any) -> None:
@@ -70,7 +82,9 @@ def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
     for item in data:
         row = []
         for value in item.values():
-            if isinstance(value, (dict, list)):
+            if value is None:
+                row.append("N/A")
+            elif isinstance(value, (dict, list)):
                 row.append(str(len(value)))
             else:
                 row.append(str(value))
@@ -93,6 +107,9 @@ def list_events(
     publish_timestamp: Optional[str] = typer.Option(None, "--publish-timestamp", help="Publication timestamp filter"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
+    format_option: Optional[str] = typer.Option(None, "--format", help="Output format (json, table, csv)"),
+    quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
 ):
     """List events with pagination and filtering."""
     from misp_cli.cli.app import get_app
@@ -124,10 +141,28 @@ def list_events(
     
     response = client.get_sync("/events/index", params=params)
     
-    output_format = _get_output_format(config, json_output, table_output)
-    events = response.get("events", response.get("data", []))
+    output_format = _get_output_format(config, json_output, table_output, csv_output, format_option)
     
-    if output_format == "table":
+    # Unwrap nested Event structure: [{'Event': {...}}, ...] -> [{...}, ...]
+    raw_events = response.get("events", response.get("data", []))
+    if raw_events and isinstance(raw_events, list):
+        # Check if each item is wrapped in "Event" key
+        if all(isinstance(item, dict) and "Event" in item for item in raw_events):
+            events = [item["Event"] for item in raw_events]
+        else:
+            events = raw_events
+    else:
+        events = raw_events
+    
+    # Get pagination info from response
+    total_count = response.get("total", len(events))
+    
+    if not quiet:
+        typer.echo(f"Showing {len(events)} of {total_count} event(s)")
+    
+    if output_format == "csv":
+        _print_csv(events)
+    elif output_format == "table":
         _print_table(events)
     else:
         _print_json(events)
@@ -163,20 +198,24 @@ def show_event(
 
 @events_app.command("create")
 def create_event(
-    info: str = typer.Option(..., "-i", "--info", help="Event info"),
-    threat_level: int = typer.Option(2, "-t", "--threat-level", min=1, max=4, help="Threat level (1-4)"),
-    analysis: int = typer.Option(1, "-a", "--analysis", min=0, max=2, help="Analysis level (0-2)"),
-    distribution: int = typer.Option(5, "-d", "--distribution", min=0, max=5, help="Distribution (0-5)"),
+    info: str = typer.Option(..., "-i", "--info", help="Event info/title"),
+    threat_level: int = typer.Option(2, "-t", "--threat-level", min=1, max=4, help="Threat level ID (1-4: 1=High, 2=Medium, 3=Low, 4=Undefined)"),
+    analysis: int = typer.Option(1, "-a", "--analysis", min=0, max=2, help="Analysis level (0=Initial, 1=Ongoing, 2=Completed)"),
+    distribution: int = typer.Option(5, "-d", "--distribution", min=0, max=5, help="Distribution (0=Your Organisation Only, 1=This Community Only, 2=Connected Communities, 3=All Communities, 4=Sharing Group, 5=Inherit From Event)"),
     event_date: Optional[str] = typer.Option(None, "-e", "--date", help="Event date (YYYY-MM-DD)"),
+    org_id: Optional[int] = typer.Option(None, "-o", "--org-id", help="Organisation ID to create event for"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
 ):
-    """Create a new event."""
+    """Create a new event in MISP."""
     from misp_cli.cli.app import get_app
+    from misp_cli.core.exceptions import MISPAPIError
     
     app = get_app()
     config = app.profile
     client = app.client
     
+    # Build event data structure for MISP API
     data: Dict[str, Any] = {
         "info": info,
         "threat_level_id": threat_level,
@@ -187,12 +226,26 @@ def create_event(
     if event_date:
         data["date"] = event_date
     
-    response = client.post_sync("/events/add", data={"Event": data})
+    if org_id:
+        data["org_id"] = org_id
     
-    if config.output_format == "json" or json_output:
-        _print_json(response)
-    else:
-        typer.echo(f"Event created successfully: {response.get('Event', {}).get('id', 'Unknown')}")
+    try:
+        response = client.post_sync("/events/add", data={"Event": data})
+        
+        if config.output_format == "json" or json_output:
+            _print_json(response)
+        else:
+            event_id = response.get("Event", {}).get("id", "Unknown")
+            if not quiet:
+                typer.echo(f"Event created successfully: {event_id}")
+    except MISPAPIError as e:
+        if "Event name required" in str(e.message) or "info" in str(e.message).lower():
+            typer.echo(f"Error: Event info/title is required. Use --info or -i option.", err=True)
+        elif "threat_level" in str(e.message).lower():
+            typer.echo(f"Error: Invalid threat level. Must be 1-4.", err=True)
+        else:
+            typer.echo(f"Error creating event: {e.message}", err=True)
+        raise typer.Exit(1)
 
 
 @events_app.command("delete")
@@ -295,7 +348,17 @@ def search_events(
     response = client.post_sync("/events/restSearch", data=data)
     
     output_format = _get_output_format(config, json_output, table_output)
-    events = response.get("events", response.get("data", []))
+    
+    # Unwrap nested Event structure: [{'Event': {...}}, ...] -> [{...}, ...]
+    raw_events = response.get("events", response.get("data", []))
+    if raw_events and isinstance(raw_events, list):
+        # Check if each item is wrapped in "Event" key
+        if all(isinstance(item, dict) and "Event" in item for item in raw_events):
+            events = [item["Event"] for item in raw_events]
+        else:
+            events = raw_events
+    else:
+        events = raw_events
     
     if output_format == "table":
         _print_table(events)
@@ -306,22 +369,47 @@ def search_events(
 @events_app.command("export")
 def export_event(
     event_id: int = typer.Argument(..., help="Event ID to export"),
-    format: str = typer.Option("json", "-f", "--format", help="Export format (json, csv, xml)"),
+    format: str = typer.Option("json", "-f", "--format", help="Export format (json, csv, xml, striing, json2, rpz, misp2)"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
 ):
-    """Export an event."""
+    """Export an event from MISP in the specified format."""
     from misp_cli.cli.app import get_app
+    from misp_cli.core.exceptions import MISPAPIError
     
     app = get_app()
     config = app.profile
     client = app.client
     
-    response = client.get_sync(f"/events/export/{event_id}", params={"format": format})
-    
-    if format == "json" or json_output:
-        _print_json(response)
-    else:
-        typer.echo(response.get("data", response))
+    try:
+        response = client.get_sync(f"/events/export/{event_id}", params={"format": format})
+        
+        if config.output_format == "json" or json_output:
+            # If response is a dict, print as JSON; otherwise print raw
+            if isinstance(response, dict):
+                _print_json(response)
+            else:
+                try:
+                    _print_json(json.loads(response))
+                except (json.JSONDecodeError, TypeError):
+                    _print_json({"raw": response})
+        else:
+            if isinstance(response, dict):
+                data = response.get("data", response)
+                if isinstance(data, dict):
+                    _print_json(data)
+                else:
+                    typer.echo(str(data))
+            else:
+                typer.echo(str(response))
+    except MISPAPIError as e:
+        if e.status_code == 404:
+            typer.echo(f"Error: Event {event_id} not found", err=True)
+        elif e.status_code == 403:
+            typer.echo(f"Error: Permission denied to export event {event_id}. Check your role permissions.", err=True)
+        else:
+            typer.echo(f"Error exporting event: {e.message}", err=True)
+        raise typer.Exit(1)
 
 
 @events_app.command("attributes")

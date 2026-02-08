@@ -67,7 +67,9 @@ def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
     for item in data:
         row = []
         for value in item.values():
-            if isinstance(value, (dict, list)):
+            if value is None:
+                row.append("N/A")
+            elif isinstance(value, (dict, list)):
                 row.append(str(len(value)))
             else:
                 row.append(str(value))
@@ -83,6 +85,7 @@ def list_feeds(
     enabled_only: bool = typer.Option(False, "--enabled", help="Show only enabled feeds"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
 ):
     """List all feeds."""
     from misp_cli.cli.app import get_app
@@ -101,7 +104,20 @@ def list_feeds(
     response = client.get_sync("/feeds/index", params=params)
     
     output_format = _get_output_format(config, json_output, table_output)
-    feeds = response.get("feeds", response.get("data", []))
+    
+    # Unwrap nested Feed structure: [{'Feed': {...}}, ...] -> [{...}, ...]
+    raw_feeds = response.get("feeds", response.get("data", []))
+    if raw_feeds and isinstance(raw_feeds, list):
+        # Check if each item is wrapped in "Feed" key
+        if all(isinstance(item, dict) and "Feed" in item for item in raw_feeds):
+            feeds = [item["Feed"] for item in raw_feeds]
+        else:
+            feeds = raw_feeds
+    else:
+        feeds = raw_feeds
+    
+    if not quiet:
+        typer.echo(f"Found {len(feeds)} feed(s)")
     
     if output_format == "table":
         _print_table(feeds)
