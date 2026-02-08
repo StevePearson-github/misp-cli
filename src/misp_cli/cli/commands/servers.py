@@ -4,7 +4,6 @@ import json
 from typing import Any, Dict, List, Optional
 
 import typer
-from rich.console import Console
 from rich.table import Table
 
 from misp_cli.core.config import MISPProfile
@@ -12,7 +11,26 @@ from misp_cli.core.config import MISPProfile
 servers_app = typer.Typer(
     name="servers",
     help="Manage MISP servers",
+    add_help_option=True,
+    invoke_without_command=True,
 )
+
+
+@servers_app.callback()
+def servers_callback(
+    ctx: typer.Context,
+    help: bool = typer.Option(
+        False,
+        "-h",
+        "--help",
+        help="Show this help message",
+        is_eager=True,
+    ),
+):
+    """Manage MISP servers."""
+    if help:
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
 
 
 def _get_output_format(config: MISPProfile, json_output: bool, table_output: bool) -> str:
@@ -35,7 +53,8 @@ def _print_table(data: List[Dict], columns: Optional[List[str]] = None) -> None:
         typer.echo("No data available")
         return
     
-    console = Console()
+    from misp_cli.cli.app import get_app
+    console = get_app().console
     table = Table(show_header=True, header_style="bold magenta")
     
     if columns:
