@@ -51,10 +51,10 @@ def list_decaying_models(
         "page": page,
     }
 
-    response = client.get_sync("/decayingModels/index", params=params)
+    response = client.get_sync("/decayingModel/index.json", params=params)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
-    models = response.get("decayingModels", response.get("data", []))
+    models = response.get("DecayingModel", response.get("data", []))
 
     if output_format == "csv":
         print_csv(models)

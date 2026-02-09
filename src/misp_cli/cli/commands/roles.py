@@ -2,7 +2,13 @@
 
 import typer
 
-from misp_cli.cli.output import get_output_format, print_csv, print_json, print_table
+from misp_cli.cli.output import (
+    get_output_format,
+    print_csv,
+    print_json,
+    print_table,
+    unwrap_nested_data,
+)
 
 roles_app = typer.Typer(
     name="roles",
@@ -45,7 +51,7 @@ def list_roles(
     response = client.get_sync("/roles/index")
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
-    roles = response.get("roles", response.get("data", []))
+    roles = unwrap_nested_data(response, "Role")
 
     if output_format == "csv":
         print_csv(roles)
