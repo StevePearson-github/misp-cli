@@ -245,7 +245,7 @@ def delete_attribute(
 
 @attributes_app.command("search")
 def search_attributes(
-    value: str = typer.Argument(..., help="Search value"),
+    value: str | None = typer.Argument(None, help="Search value"),
     type: str | None = typer.Option(None, "-t", "--type", help="Filter by type"),
     category: str | None = typer.Option(None, "-c", "--category", help="Filter by category"),
     from_date: str | None = typer.Option(
@@ -261,14 +261,16 @@ def search_attributes(
     table_output: bool = typer.Option(False, "-T", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
 ):
-    """Search for attributes by value."""
+    """Search for attributes by value (optional) and/or type."""
     from misp_cli.cli.app import get_app
 
     app = get_app()
     config = app.profile
     client = app.client
 
-    data: dict[str, Any] = {"value": value}
+    data: dict[str, Any] = {}
+    if value:
+        data["value"] = value
     if type:
         data["type"] = type
     if category:
