@@ -174,7 +174,6 @@ export MISP_CLI_URL="https://misp.example.com"
 export MISP_CLI_API_KEY="your-api-key"
 export MISP_CLI_VERIFY_SSL="true"
 export MISP_CLI_TIMEOUT="30"
-export MISP_CLI_OUTPUT_FORMAT="json"
 export MISP_CLI_PROFILE="production"
 ```
 
@@ -223,8 +222,9 @@ misp-cli config --show
 # Use a specific profile
 misp-cli --profile production events list
 
-# Override output format
-misp-cli --output table events list
+# Show extended help
+misp-cli events --help
+misp-cli events create --help
 ```
 
 ## Available Commands
@@ -509,11 +509,12 @@ misp-cli events list
 # Table output
 misp-cli events list --table
 
+# CSV output
+misp-cli events list --csv
+
 # Force JSON output
 misp-cli events list --json
 
-# Override output format globally
-misp-cli --output table events list
 ```
 
 ### Log Operations

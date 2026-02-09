@@ -122,14 +122,16 @@ def list_events(
     config = app.profile
     client = app.client
 
-    params: dict[str, Any] = {
-        "limit": limit,
-        "page": page,
-    }
+    # Build query params similar to logs command
+    params: dict[str, Any] = {}
+    if limit:
+        params["limit"] = limit
+    if page:
+        params["page"] = page
     if search:
         params["search"] = search
     if org:
-        params["org"] = org
+        params["searchorg"] = org
     if from_date:
         params["from"] = from_date
     if to_date:
@@ -220,7 +222,7 @@ def create_event(
         help="Analysis level (0=Initial, 1=Ongoing, 2=Completed)",
     ),
     distribution: int = typer.Option(
-        5,
+        1,
         "-d",
         "--distribution",
         min=0,
@@ -272,7 +274,7 @@ def create_event(
             typer.echo("Error: Invalid threat level. Must be 1-4.", err=True)
         else:
             typer.echo(f"Error creating event: {e.message}", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @events_app.command("delete")
@@ -449,7 +451,7 @@ def export_event(
             )
         else:
             typer.echo(f"Error exporting event: {e.message}", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @events_app.command("attributes")
