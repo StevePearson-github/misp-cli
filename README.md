@@ -357,7 +357,6 @@ misp-cli --output table events list
 | `roles list` | List roles |
 | `decaying-models list` | List decaying models |
 | `event-blocklists list` | List event blocklists |
-| `attribute-blocklists list` | List attribute blocklists |
 | `news list` | List news |
 | `stats system` | System statistics |
 | `stats users` | User statistics |

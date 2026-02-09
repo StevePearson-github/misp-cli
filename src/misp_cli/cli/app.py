@@ -1,14 +1,14 @@
 """Command-line interface for MISP CLI."""
 
 import sys
-from typing import Optional
 from pathlib import Path
-from rich.console import Console
-import typer
-from misp_cli.core.config import ConfigManager, CLIConfig
-from misp_cli.core.client import MISPCLient
-from misp_cli.core.exceptions import MISPConfigurationError
 
+import typer
+from rich.console import Console
+
+from misp_cli.core.client import MISPCLient
+from misp_cli.core.config import ConfigManager
+from misp_cli.core.exceptions import MISPConfigurationError
 
 app = typer.Typer(
     name="misp-cli",
@@ -25,8 +25,8 @@ class MISPApp:
 
     def __init__(
         self,
-        config_path: Optional[Path] = None,
-        profile: Optional[str] = None,
+        config_path: Path | None = None,
+        profile: str | None = None,
         no_color: bool = False,
     ):
         self.console = Console(no_color=no_color)
@@ -56,7 +56,7 @@ class MISPApp:
 
 
 # Global app instance
-_misp_app: Optional[MISPApp] = None
+_misp_app: MISPApp | None = None
 
 
 def get_app() -> MISPApp:
@@ -76,7 +76,7 @@ def set_app(app: MISPApp):
 @app.callback()
 def callback(
     ctx: typer.Context,
-    config: Optional[Path] = typer.Option(
+    config: Path | None = typer.Option(
         None,
         "-c",
         "--config",
@@ -84,7 +84,7 @@ def callback(
         exists=False,
         dir_okay=False,
     ),
-    profile: Optional[str] = typer.Option(
+    profile: str | None = typer.Option(
         None,
         "-p",
         "--profile",
@@ -205,28 +205,27 @@ def main():
 # Register all command subapps at module level for proper help display
 def _register_commands():
     """Register all command subapps."""
-    from misp_cli.cli.commands.events import events_app
     from misp_cli.cli.commands.attributes import attributes_app
-    from misp_cli.cli.commands.users import users_app
-    from misp_cli.cli.commands.organisations import organisations_app
-    from misp_cli.cli.commands.tags import tags_app
-    from misp_cli.cli.commands.sharing_groups import sharing_groups_app
-    from misp_cli.cli.commands.feeds import feeds_app
-    from misp_cli.cli.commands.servers import servers_app
-    from misp_cli.cli.commands.objects import objects_app
-    from misp_cli.cli.commands.object_templates import object_templates_app
-    from misp_cli.cli.commands.galaxies import galaxies_app
-    from misp_cli.cli.commands.warninglists import warninglists_app
-    from misp_cli.cli.commands.noticelists import noticelists_app
-    from misp_cli.cli.commands.taxonomies import taxonomies_app
-    from misp_cli.cli.commands.roles import roles_app
     from misp_cli.cli.commands.decaying_models import decaying_models_app
     from misp_cli.cli.commands.event_blocklists import event_blocklists_app
-    from misp_cli.cli.commands.attribute_blocklists import attribute_blocklists_app
-    from misp_cli.cli.commands.news import news_app
+    from misp_cli.cli.commands.events import events_app
+    from misp_cli.cli.commands.feeds import feeds_app
     from misp_cli.cli.commands.feeds_manage_feeds import manage_feeds_app
+    from misp_cli.cli.commands.galaxies import galaxies_app
     from misp_cli.cli.commands.logs import logs_app
+    from misp_cli.cli.commands.news import news_app
+    from misp_cli.cli.commands.noticelists import noticelists_app
+    from misp_cli.cli.commands.object_templates import object_templates_app
+    from misp_cli.cli.commands.objects import objects_app
+    from misp_cli.cli.commands.organisations import organisations_app
+    from misp_cli.cli.commands.roles import roles_app
+    from misp_cli.cli.commands.servers import servers_app
+    from misp_cli.cli.commands.sharing_groups import sharing_groups_app
     from misp_cli.cli.commands.stats import stats_app
+    from misp_cli.cli.commands.tags import tags_app
+    from misp_cli.cli.commands.taxonomies import taxonomies_app
+    from misp_cli.cli.commands.users import users_app
+    from misp_cli.cli.commands.warninglists import warninglists_app
 
     # Add command groups
     app.add_typer(events_app, name="events")
@@ -246,7 +245,6 @@ def _register_commands():
     app.add_typer(roles_app, name="roles")
     app.add_typer(decaying_models_app, name="decaying-models")
     app.add_typer(event_blocklists_app, name="event-blocklists")
-    app.add_typer(attribute_blocklists_app, name="attribute-blocklists")
     app.add_typer(news_app, name="news")
     app.add_typer(manage_feeds_app, name="manage-feeds")
     app.add_typer(logs_app, name="logs")

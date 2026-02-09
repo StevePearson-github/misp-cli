@@ -5,7 +5,13 @@ from typing import Any
 
 import typer
 
-from misp_cli.cli.output import get_output_format, print_csv, print_json, print_table
+from misp_cli.cli.output import (
+    get_output_format,
+    print_csv,
+    print_json,
+    print_table,
+    unwrap_nested_data,
+)
 
 logs_app = typer.Typer(
     name="logs",
@@ -55,7 +61,7 @@ def list_logs(
     response = client.get_sync("/logs/index", params=params)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
-    logs = response.get("logs", response.get("data", []))
+    logs = unwrap_nested_data(response, "Log")
 
     if output_format == "csv":
         print_csv(logs)
@@ -88,7 +94,7 @@ def search_logs(
     response = client.get_sync("/logs/search", params=params)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
-    logs = response.get("logs", response.get("data", []))
+    logs = unwrap_nested_data(response, "Log")
 
     if output_format == "csv":
         print_csv(logs)
@@ -121,7 +127,7 @@ def user_logs(
     response = client.get_sync(f"/logs/user/{user_id}", params=params)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
-    logs = response.get("logs", response.get("data", []))
+    logs = unwrap_nested_data(response, "Log")
 
     if output_format == "csv":
         print_csv(logs)
@@ -148,7 +154,7 @@ def event_logs(
     response = client.get_sync(f"/logs/event/{event_id}")
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
-    logs = response.get("logs", response.get("data", []))
+    logs = unwrap_nested_data(response, "Log")
 
     if output_format == "csv":
         print_csv(logs)
@@ -187,7 +193,7 @@ def logs_by_date(
     response = client.get_sync("/logs/date", params=params)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
-    logs = response.get("logs", response.get("data", []))
+    logs = unwrap_nested_data(response, "Log")
 
     if output_format == "csv":
         print_csv(logs)
