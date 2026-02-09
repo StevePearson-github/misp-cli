@@ -4,7 +4,7 @@ from typing import Any
 
 import typer
 
-from misp_cli.cli.output import get_output_format, print_csv, print_json, print_table
+from misp_cli.cli.output import get_output_format, print_csv, print_json, print_table, unwrap_nested_data
 
 manage_feeds_app = typer.Typer(
     name="feeds",
@@ -52,7 +52,7 @@ def list_feeds(
     response = client.get_sync("/feeds/index", params=params)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
-    feeds = response.get("feeds", response.get("data", []))
+    feeds = unwrap_nested_data(response, "Feed")
 
     if output_format == "csv":
         print_csv(feeds)
