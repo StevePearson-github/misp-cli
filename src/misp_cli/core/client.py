@@ -3,13 +3,15 @@
 import asyncio
 import csv
 import io
+from typing import Any
+
 import httpx
-from typing import Any, Dict, List, Optional
+
 from misp_cli.core.config import MISPProfile
 from misp_cli.core.exceptions import (
     MISPAPIError,
-    MISPConnectionError,
     MISPAuthenticationError,
+    MISPConnectionError,
     MISPNotFoundError,
     MISPRateLimitError,
 )
@@ -33,10 +35,10 @@ class MISPCLient:
         self.api_key = api_key
         self.verify_ssl = verify_ssl
         self.timeout = timeout
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
     @property
-    def headers(self) -> Dict[str, str]:
+    def headers(self) -> dict[str, str]:
         """Get common headers for API requests."""
         return {
             "Authorization": self.api_key,
@@ -58,9 +60,9 @@ class MISPCLient:
         self,
         method: str,
         endpoint: str,
-        params: Optional[Dict[str, Any]] = None,
-        data: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        params: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Make an API request to MISP.
 
@@ -98,32 +100,33 @@ class MISPCLient:
     async def get(
         self,
         endpoint: str,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """GET request helper."""
         return await self.request("GET", endpoint, params=params)
 
     async def post(
         self,
         endpoint: str,
-        data: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        data: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """POST request helper."""
-        return await self.request("POST", endpoint, data=data)
+        return await self.request("POST", endpoint, data=data, params=params)
 
     async def put(
         self,
         endpoint: str,
-        data: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        data: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """PUT request helper."""
         return await self.request("PUT", endpoint, data=data)
 
     async def delete(
         self,
         endpoint: str,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """DELETE request helper."""
         return await self.request("DELETE", endpoint, params=params)
 
@@ -132,7 +135,7 @@ class MISPCLient:
         if self._client and not self._client.is_closed:
             await self._client.aclose()
 
-    def _handle_response(self, response: httpx.Response) -> Dict[str, Any]:
+    def _handle_response(self, response: httpx.Response) -> dict[str, Any]:
         """Process API response."""
         try:
             response_data = response.json()
@@ -182,7 +185,7 @@ class MISPCLient:
 
     # Output formatting methods
     @staticmethod
-    def format_as_csv(data: List[Dict], columns: Optional[List[str]] = None) -> str:
+    def format_as_csv(data: list[dict], columns: list[str] | None = None) -> str:
         """
         Format data as CSV.
         
@@ -195,13 +198,13 @@ class MISPCLient:
         """
         if not data:
             return ""
-        
+
         # Determine columns to use
         if columns:
             keys = columns
         else:
             keys = list(data[0].keys()) if data else []
-        
+
         # Handle None values
         def clean_value(value: Any) -> str:
             if value is None:
@@ -209,18 +212,18 @@ class MISPCLient:
             elif isinstance(value, (dict, list)):
                 return str(len(value))
             return str(value)
-        
+
         output = io.StringIO()
         writer = csv.DictWriter(output, fieldnames=keys, extrasaction="ignore")
         writer.writeheader()
         for row in data:
             cleaned_row = {k: clean_value(v) for k, v in row.items() if k in keys}
             writer.writerow(cleaned_row)
-        
+
         return output.getvalue()
 
     @staticmethod
-    def flatten_dict(d: Dict[str, Any], parent_key: str = "", sep: str = "_") -> Dict[str, Any]:
+    def flatten_dict(d: dict[str, Any], parent_key: str = "", sep: str = "_") -> dict[str, Any]:
         """Flatten nested dictionary."""
         items = []
         for k, v in d.items():
@@ -235,32 +238,33 @@ class MISPCLient:
     def get_sync(
         self,
         endpoint: str,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Synchronous GET request helper."""
         return asyncio.run(self.get(endpoint, params=params))
 
     def post_sync(
         self,
         endpoint: str,
-        data: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        data: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Synchronous POST request helper."""
-        return asyncio.run(self.post(endpoint, data=data))
+        return asyncio.run(self.post(endpoint, data=data, params=params))
 
     def put_sync(
         self,
         endpoint: str,
-        data: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        data: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Synchronous PUT request helper."""
         return asyncio.run(self.put(endpoint, data=data))
 
     def delete_sync(
         self,
         endpoint: str,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Synchronous DELETE request helper."""
         return asyncio.run(self.delete(endpoint, params=params))
 

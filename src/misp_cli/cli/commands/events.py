@@ -132,25 +132,113 @@ def list_events(
         params["search"] = search
     if org:
         params["searchorg"] = org
-    if from_date:
-        params["from"] = from_date
-    if to_date:
-        params["to"] = to_date
-    if last:
-        params["last"] = last
-    if date:
-        params["date"] = date
-    if timestamp:
-        params["timestamp"] = timestamp
-    if publish_timestamp:
-        params["publish_timestamp"] = publish_timestamp
 
-    response = client.get_sync("/events/index", params=params)
+    # Check if date filters are provided
+    has_date_filter = bool(from_date or to_date or last or date or timestamp or publish_timestamp)
+
+    if has_date_filter:
+        # Use POST to /events/restSearch for date filtering
+        # The MISP API requires date filters to be sent in the request body
+        data: dict[str, Any] = {}
+        if limit:
+            data["limit"] = limit
+        if page:
+            data["page"] = page
+        if search:
+            data["search"] = search
+        if org:
+            data["searchorg"] = org
+
+        # Convert 'last' to 'from' and 'to' timestamps as a workaround
+        # for MISP servers that don't handle 'last' correctly
+        if last:
+            from datetime import UTC, datetime, timedelta
+
+            # Parse the 'last' value (e.g., "7d", "12h", "30m" or a timestamp)
+            if last.isdigit():
+                # It's a timestamp - use it as the 'to' date
+                last_timestamp = int(last)
+                to_dt = datetime.fromtimestamp(last_timestamp, tz=UTC)
+                from_dt = to_dt  # Same date for single timestamp
+                data["from"] = from_dt.strftime("%Y-%m-%d")
+                data["to"] = to_dt.strftime("%Y-%m-%d")
+            else:
+                # It's a relative time string (e.g., "7d", "12h", "30m")
+                now = datetime.now(UTC)
+
+                # Parse the relative time
+                value_str = last[:-1]
+                unit = last[-1:]
+
+                try:
+                    value: float = int(value_str)
+                except ValueError:
+                    # Fall back to using 'last' as-is if parsing fails
+                    data["last"] = last
+                else:
+                    if unit == "d":
+                        delta = timedelta(days=value)
+                        from_dt = now - delta
+                        to_dt = now
+                        data["from"] = from_dt.strftime("%Y-%m-%d")
+                        data["to"] = to_dt.strftime("%Y-%m-%d")
+                    elif unit == "h":
+                        # Hours - convert to days for MISP API compatibility
+                        days: int = max(1, (int(value) + 23) // 24)  # Round up to at least 1 day
+                        from_dt = now - timedelta(days=days)
+                        to_dt = now
+                        data["from"] = from_dt.strftime("%Y-%m-%d")
+                        data["to"] = to_dt.strftime("%Y-%m-%d")
+                        typer.echo(
+                            f"Note: --last {last} uses day-level precision (showing events from {days} day(s))",
+                            err=True,
+                        )
+                    elif unit == "m":
+                        # Minutes - convert to days for MISP API compatibility
+                        days = max(1, (int(value) + 1439) // 1440)  # Round up to at least 1 day
+                        from_dt = now - timedelta(days=days)
+                        to_dt = now
+                        data["from"] = from_dt.strftime("%Y-%m-%d")
+                        data["to"] = to_dt.strftime("%Y-%m-%d")
+                        typer.echo(
+                            f"Note: --last {last} uses day-level precision (showing events from {days} day(s))",
+                            err=True,
+                        )
+                    else:
+                        # Unknown unit, fall back to using 'last' as-is
+                        data["last"] = last
+
+        elif from_date:
+            data["from"] = from_date
+        if to_date:
+            data["to"] = to_date
+        if date:
+            data["date"] = date
+        if timestamp:
+            data["timestamp"] = timestamp
+        if publish_timestamp:
+            data["publish_timestamp"] = publish_timestamp
+
+        response = client.post_sync("/events/restSearch", data=data)
+    else:
+        # No date filters, use GET to /events/index
+        if from_date:
+            params["from"] = from_date
+        if to_date:
+            params["to"] = to_date
+        if date:
+            params["date"] = date
+        if timestamp:
+            params["timestamp"] = timestamp
+        if publish_timestamp:
+            params["publish_timestamp"] = publish_timestamp
+
+        response = client.get_sync("/events/index", params=params)
 
     output_format = _get_output_format(config, json_output, table_output, csv_output, format_option)
 
     # Unwrap nested Event structure: [{'Event': {...}}, ...] -> [{...}, ...]
-    raw_events = response.get("events", response.get("data", []))
+    raw_events = response.get("events", response.get("data", response.get("response", [])))
     if raw_events and isinstance(raw_events, list):
         # Check if each item is wrapped in "Event" key
         if all(isinstance(item, dict) and "Event" in item for item in raw_events):
@@ -159,6 +247,10 @@ def list_events(
             events = raw_events
     else:
         events = raw_events
+
+    # Client-side limit fallback when API ignores pagination
+    if limit and len(events) > limit:
+        events = events[:limit]
 
     # Get pagination info from response
     total_count = response.get("total", len(events))
@@ -387,7 +479,7 @@ def search_events(
     output_format = _get_output_format(config, json_output, table_output)
 
     # Unwrap nested Event structure: [{'Event': {...}}, ...] -> [{...}, ...]
-    raw_events = response.get("events", response.get("data", []))
+    raw_events = response.get("events", response.get("data", response.get("response", [])))
     if raw_events and isinstance(raw_events, list):
         # Check if each item is wrapped in "Event" key
         if all(isinstance(item, dict) and "Event" in item for item in raw_events):

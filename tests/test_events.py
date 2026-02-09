@@ -17,8 +17,8 @@ class TestEventsCommands:
         mock_config.output_format = "json"
 
         mock_client = MagicMock()
-        mock_client.get_sync.return_value = {
-            "events": [{"id": 1, "info": "Test Event"}]
+        mock_client.post_sync.return_value = {
+            "response": [{"id": 1, "info": "Test Event"}]
         }
 
         mock_app = MagicMock()
@@ -34,10 +34,10 @@ class TestEventsCommands:
                 from misp_cli.cli.commands.events import list_events
                 list_events(limit=50, page=1, search=None, org=None, json_output=True, table_output=False)
 
-                mock_client.get_sync.assert_called_once()
-                call_args = mock_client.get_sync.call_args
-                assert call_args[0][0] == "/events/index"
-                assert call_args[1]["params"]["limit"] == 50
+                mock_client.post_sync.assert_called_once()
+                call_args = mock_client.post_sync.call_args
+                assert call_args[0][0] == "/events/restSearch"
+                assert call_args[1]["data"]["limit"] == 50
 
     def test_events_show_json_output(self):
         """Test showing an event with JSON output."""
@@ -175,8 +175,8 @@ class TestEventsCommands:
         mock_config.output_format = "json"
 
         mock_client = MagicMock()
-        mock_client.get_sync.return_value = {
-            "events": [{"id": 1, "info": "Test Event", "Orgc": {"name": "ACME Corp"}}]
+        mock_client.post_sync.return_value = {
+            "response": [{"id": 1, "info": "Test Event", "Orgc": {"name": "ACME Corp"}}]
         }
 
         mock_app = MagicMock()
@@ -188,7 +188,7 @@ class TestEventsCommands:
             from misp_cli.cli.commands.events import list_events
             list_events(limit=50, page=1, search=None, org="ACME Corp", json_output=True, table_output=False)
 
-            mock_client.get_sync.assert_called_once()
-            call_args = mock_client.get_sync.call_args
-            assert call_args[0][0] == "/events/index"
-            assert call_args[1]["params"]["searchorg"] == "ACME Corp"
+            mock_client.post_sync.assert_called_once()
+            call_args = mock_client.post_sync.call_args
+            assert call_args[0][0] == "/events/restSearch"
+            assert call_args[1]["data"]["searchorg"] == "ACME Corp"
