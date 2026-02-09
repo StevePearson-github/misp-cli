@@ -80,6 +80,8 @@ def list_users(
     config = app.profile
     client = app.client
 
+    from urllib.parse import urlencode
+
     params: dict[str, Any] = {
         "limit": limit,
         "page": page,
@@ -103,6 +105,10 @@ def list_users(
             users = raw_users
     else:
         users = raw_users if isinstance(raw_users, list) else []
+
+    # Client-side limit fallback when API ignores pagination
+    if limit and len(users) > limit:
+        users = users[:limit]
 
     if not quiet:
         typer.echo(f"Found {len(users)} user(s)")
