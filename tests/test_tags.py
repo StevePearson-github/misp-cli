@@ -39,7 +39,7 @@ class TestTagsCommands:
     def test_list_tags_json_output(self):
         """Test listing tags with JSON output."""
         mock_app, mock_config, mock_client = setup_mock_app()
-        mock_client.get_sync.return_value = {
+        mock_client.post_sync.return_value = {
             "Tag": [
                 {"id": 1, "name": "test-tag", "color": "#0088cc"},
                 {"id": 2, "name": "malware-tag", "color": "#ff0000"}
@@ -47,12 +47,12 @@ class TestTagsCommands:
         }
 
         with patch("misp_cli.cli.app.get_app", return_value=mock_app):
-            list_tags(limit=50, page=1, json_output=True, table_output=False)
+            list_tags(limit=50, page=1, json_output=True, table_output=False, csv_output=False)
 
-            mock_client.get_sync.assert_called_once()
-            call_args = mock_client.get_sync.call_args
+            mock_client.post_sync.assert_called_once()
+            call_args = mock_client.post_sync.call_args
             assert call_args[0][0] == "/tags/index"
-            assert call_args[1]["params"]["limit"] == 50
+            assert call_args[1]["data"]["limit"] == 50
 
     def test_show_tag_json_output(self):
         """Test showing a tag with JSON output."""
@@ -188,8 +188,8 @@ class TestTagsCommands:
     def test_list_tags_error_handling(self):
         """Test error handling when listing tags fails."""
         mock_app, mock_config, mock_client = setup_mock_app()
-        mock_client.get_sync.side_effect = Exception("API Error")
+        mock_client.post_sync.side_effect = Exception("API Error")
 
         with patch("misp_cli.cli.app.get_app", return_value=mock_app):
             with pytest.raises(Exception):
-                list_tags(limit=50, page=1, json_output=True, table_output=False)
+                list_tags(limit=50, page=1, json_output=True, table_output=False, csv_output=False)

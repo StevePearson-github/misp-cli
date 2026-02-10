@@ -46,15 +46,19 @@ def list_tags(
     config = app.profile
     client = app.client
 
-    params: dict[str, Any] = {
+    data: dict[str, Any] = {
         "limit": limit,
         "page": page,
     }
 
-    response = client.get_sync("/tags/index", params=params)
+    response = client.post_sync("/tags/index", data=data)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     tags = response.get("Tag", response.get("tags", response.get("data", [])))
+
+    # Client-side limit fallback when API ignores pagination
+    if limit and len(tags) > limit:
+        tags = tags[:limit]
 
     if output_format == "csv":
         print_csv(tags)
