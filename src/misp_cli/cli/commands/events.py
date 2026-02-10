@@ -131,12 +131,14 @@ def list_events(
     if search:
         params["search"] = search
     if org:
-        params["searchorg"] = org
+        params["org"] = org
 
-    # Check if date filters are provided
+    # Check if filters that require restSearch are provided
+    # The GET /events/index endpoint doesn't support org filtering, so we need restSearch
     has_date_filter = bool(from_date or to_date or last or date or timestamp or publish_timestamp)
+    needs_rest_search = has_date_filter or org
 
-    if has_date_filter:
+    if needs_rest_search:
         # Use POST to /events/restSearch for date filtering
         # The MISP API requires date filters to be sent in the request body
         data: dict[str, Any] = {}
@@ -147,7 +149,7 @@ def list_events(
         if search:
             data["search"] = search
         if org:
-            data["searchorg"] = org
+            data["org"] = org
 
         # Convert 'last' to 'from' and 'to' timestamps as a workaround
         # for MISP servers that don't handle 'last' correctly

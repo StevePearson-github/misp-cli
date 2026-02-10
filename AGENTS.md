@@ -4,6 +4,16 @@ This document provides guidelines for AI agents working on the misp-cli codebase
 
 ## Build, Lint, and Test Commands
 
+### Preferred Installation Method
+```bash
+uv tool install .
+```
+
+### Preferred method of re-installing misp-cli
+```bash
+uv tool install --reinstall .
+```
+
 ### Installation
 ```bash
 pip install -e ".[dev]"  # Install with dev dependencies
