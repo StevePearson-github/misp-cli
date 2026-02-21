@@ -136,7 +136,7 @@ def list_events(
     # Check if filters that require restSearch are provided
     # The GET /events/index endpoint doesn't support org filtering, so we need restSearch
     has_date_filter = bool(from_date or to_date or last or date or timestamp or publish_timestamp)
-    needs_rest_search = has_date_filter or org
+    needs_rest_search = has_date_filter or org or page
 
     if needs_rest_search:
         # Use POST to /events/restSearch for date filtering
