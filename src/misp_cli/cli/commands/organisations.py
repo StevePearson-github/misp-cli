@@ -59,7 +59,7 @@ def list_organisations(
         "page": page,
     }
 
-    response = client.get_sync("/organisations", params=params)
+    response = client.get_sync("/organisations/index/scope:all", params=params)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
 
@@ -67,7 +67,7 @@ def list_organisations(
     if isinstance(response, list):
         orgs = response
     else:
-        orgs = response.get("Organisation", response.get("organisations", response.get("data", [])))
+        orgs = response.get("Organisation", response.get("organisations/index/scope:all", response.get("data", [])))
 
     # Extract Organisation data if wrapped
     if orgs and isinstance(orgs[0], dict) and "Organisation" in orgs[0]:
