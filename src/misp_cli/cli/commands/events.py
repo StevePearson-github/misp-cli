@@ -151,64 +151,10 @@ def list_events(
         if org:
             data["org"] = org
 
-        # Convert 'last' to 'from' and 'to' timestamps as a workaround
-        # for MISP servers that don't handle 'last' correctly
+        # Use the 'last' parameter directly - MISP handles relative time natively
+        # This is more efficient than converting to from/to dates
         if last:
-            from datetime import UTC, datetime, timedelta
-
-            # Parse the 'last' value (e.g., "7d", "12h", "30m" or a timestamp)
-            if last.isdigit():
-                # It's a timestamp - use it as the 'to' date
-                last_timestamp = int(last)
-                to_dt = datetime.fromtimestamp(last_timestamp, tz=UTC)
-                from_dt = to_dt  # Same date for single timestamp
-                data["from"] = from_dt.strftime("%Y-%m-%d")
-                data["to"] = to_dt.strftime("%Y-%m-%d")
-            else:
-                # It's a relative time string (e.g., "7d", "12h", "30m")
-                now = datetime.now(UTC)
-
-                # Parse the relative time
-                value_str = last[:-1]
-                unit = last[-1:]
-
-                try:
-                    value: float = int(value_str)
-                except ValueError:
-                    # Fall back to using 'last' as-is if parsing fails
-                    data["last"] = last
-                else:
-                    if unit == "d":
-                        delta = timedelta(days=value)
-                        from_dt = now - delta
-                        to_dt = now
-                        data["from"] = from_dt.strftime("%Y-%m-%d")
-                        data["to"] = to_dt.strftime("%Y-%m-%d")
-                    elif unit == "h":
-                        # Hours - convert to days for MISP API compatibility
-                        days: int = max(1, (int(value) + 23) // 24)  # Round up to at least 1 day
-                        from_dt = now - timedelta(days=days)
-                        to_dt = now
-                        data["from"] = from_dt.strftime("%Y-%m-%d")
-                        data["to"] = to_dt.strftime("%Y-%m-%d")
-                        typer.echo(
-                            f"Note: --last {last} uses day-level precision (showing events from {days} day(s))",
-                            err=True,
-                        )
-                    elif unit == "m":
-                        # Minutes - convert to days for MISP API compatibility
-                        days = max(1, (int(value) + 1439) // 1440)  # Round up to at least 1 day
-                        from_dt = now - timedelta(days=days)
-                        to_dt = now
-                        data["from"] = from_dt.strftime("%Y-%m-%d")
-                        data["to"] = to_dt.strftime("%Y-%m-%d")
-                        typer.echo(
-                            f"Note: --last {last} uses day-level precision (showing events from {days} day(s))",
-                            err=True,
-                        )
-                    else:
-                        # Unknown unit, fall back to using 'last' as-is
-                        data["last"] = last
+            data["last"] = last
 
         elif from_date:
             data["from"] = from_date
