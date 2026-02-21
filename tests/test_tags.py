@@ -78,7 +78,8 @@ class TestTagsCommands:
 
             mock_client.get_sync.assert_called_once()
             call_args = mock_client.get_sync.call_args
-            assert call_args[0][0] == "/tags/index"
+            # Search term should be in the path, URL-encoded
+            assert "/tags/search/" in call_args[0][0]
             assert call_args[1]["params"]["search"] == "test"
 
     def test_create_tag(self):

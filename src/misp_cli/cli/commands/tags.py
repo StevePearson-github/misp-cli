@@ -105,7 +105,10 @@ def search_tags(
     config = app.profile
     client = app.client
 
-    response = client.get_sync("/tags/index", params={"search": name})
+    # URL encode the search term for the path
+    import urllib.parse
+    encoded_name = urllib.parse.quote(name, safe="")
+    response = client.get_sync(f"/tags/search/{encoded_name}")
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     tags = response.get("Tag", response.get("tags", response.get("data", [])))
