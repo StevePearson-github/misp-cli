@@ -105,8 +105,8 @@ def callback(
     ),
 ):
     """MISP CLI - Command-line interface for MISP."""
-    # Skip initialization for config --generate
-    if "config" in sys.argv and "--generate" in sys.argv:
+    # Skip initialization for config --generate or --set-default
+    if "config" in sys.argv and ("--generate" in sys.argv or "--set-default" in sys.argv):
         return
 
     # Check if help was requested
@@ -156,6 +156,11 @@ def config_command(
     show: bool = typer.Option(False, "--show", help="Show current configuration"),
     validate: bool = typer.Option(False, "--validate", help="Validate configuration file"),
     generate: bool = typer.Option(False, "--generate", help="Generate default config file"),
+    set_default: str = typer.Option(
+        None,
+        "--set-default",
+        help="Set the default profile",
+    ),
     help: bool = typer.Option(False, "-h", "--help", help="Show this help message", is_eager=True),
 ):
     """Manage MISP CLI configuration."""
@@ -173,6 +178,23 @@ def config_command(
             return
         except Exception as e:
             typer.echo(f"Failed to create config: {e}", err=True)
+            raise typer.Exit(2)
+
+    # Handle set-default separately as it needs to work with any profile
+    if set_default is not None:
+        try:
+            config_manager = ConfigManager()
+            config_manager.set_default_profile(set_default)
+            typer.echo(f"Default profile set to: {set_default}")
+            return
+        except FileNotFoundError as e:
+            typer.echo(f"Configuration error: {e}", err=True)
+            raise typer.Exit(2)
+        except ValueError as e:
+            typer.echo(f"Error: {e}", err=True)
+            raise typer.Exit(2)
+        except Exception as e:
+            typer.echo(f"Failed to set default profile: {e}", err=True)
             raise typer.Exit(2)
 
     app = get_app()

@@ -314,6 +314,45 @@ colorize = false
         config_path.write_text(config_content)
         return config_path
 
+    def set_default_profile(self, profile_name: str) -> None:
+        """Set the default profile in the configuration file.
+        
+        Args:
+            profile_name: Name of the profile to set as default.
+            
+        Raises:
+            FileNotFoundError: If config file not found.
+            ValueError: If profile doesn't exist.
+        """
+        if self.config_path is None or not self.config_path.exists():
+            raise FileNotFoundError(
+                "Configuration file not found. Searched in: "
+                "MISP_CLI_CONFIG, ~/.misp-cli.conf, ./.misp-cli.conf"
+            )
+
+        # Load config to verify profile exists
+        config = self.load()
+        if profile_name not in config.profiles:
+            available = ", ".join(config.profiles.keys())
+            raise ValueError(
+                f"Profile '{profile_name}' not found. Available profiles: {available}"
+            )
+        
+        # Read the config file and modify default_profile
+        parser = configparser.ConfigParser()
+        parser.read(self.config_path)
+        
+        # Ensure DEFAULT section exists
+        if "DEFAULT" not in parser:
+            parser.add_section("DEFAULT")
+        
+        # Set the default profile
+        parser.set("DEFAULT", "default_profile", profile_name)
+        
+        # Write back to file
+        with open(self.config_path, "w") as f:
+            parser.write(f)
+
 
 class MISPConfig:
     """Convenience class for loading MISP configuration.
