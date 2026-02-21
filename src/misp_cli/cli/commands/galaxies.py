@@ -67,7 +67,6 @@ def _print_table(data: list[dict], columns: list[str] | None = None) -> None:
 @galaxies_app.command("list")
 def list_galaxies(
     limit: int = typer.Option(50, "-l", "--limit", help="Maximum number of galaxies"),
-    page: int = typer.Option(1, "-p", "--page", help="Page number"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
@@ -80,12 +79,11 @@ def list_galaxies(
     config = app.profile
     client = app.client
 
-    params: dict[str, Any] = {
-        "limit": limit,
-        "page": page,
-    }
+    params: dict[str, Any] = {}
+    if limit:
+        params["limit"] = limit
 
-    response = client.get_sync("/galaxies/index", params=params)
+    response = client.post_sync("/galaxies/index", data=params)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
 
@@ -99,6 +97,10 @@ def list_galaxies(
             galaxies = raw_galaxies
     else:
         galaxies = raw_galaxies
+
+    # Client-side limit fallback when API ignores pagination
+    if limit and len(galaxies) > limit:
+        galaxies = galaxies[:limit]
 
     if not quiet:
         typer.echo(f"Found {len(galaxies)} galaxy(ies)")
