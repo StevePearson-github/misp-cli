@@ -42,6 +42,9 @@ def logs_callback(
 def list_logs(
     limit: int = typer.Option(100, "-l", "--limit", help="Maximum number of log entries"),
     page: int = typer.Option(1, "-p", "--page", help="Page number"),
+    email: str | None = typer.Option(None, "-e", "--email", help="Filter by email address"),
+    model: str | None = typer.Option(None, "--model", help="Filter by model (e.g., User, Event, Attribute)"),
+    action: str | None = typer.Option(None, "--action", help="Filter by action (e.g., login, logout, add, edit)"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
@@ -53,12 +56,25 @@ def list_logs(
     config = app.profile
     client = app.client
 
-    params: dict[str, Any] = {
-        "limit": limit,
-        "page": page,
-    }
-
-    response = client.get_sync("/logs/index", params=params)
+    # Use POST to /admin/logs when any filter that requires it is provided
+    if email or model or action:
+        data: dict[str, Any] = {
+            "limit": limit,
+            "page": page,
+        }
+        if email:
+            data["email"] = email
+        if model:
+            data["model"] = model
+        if action:
+            data["action"] = action
+        response = client.post_sync("/admin/logs", data=data)
+    else:
+        params: dict[str, Any] = {
+            "limit": limit,
+            "page": page,
+        }
+        response = client.get_sync("/logs/index", params=params)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     logs = unwrap_nested_data(response, "Log")
