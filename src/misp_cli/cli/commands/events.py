@@ -400,6 +400,10 @@ def search_events(
     ),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
+    format_option: str | None = typer.Option(
+        None, "--format", help="Output format (json, table, csv)"
+    ),
 ):
     """Search for events."""
     from misp_cli.cli.app import get_app
@@ -424,7 +428,7 @@ def search_events(
 
     response = client.post_sync("/events/restSearch", data=data)
 
-    output_format = _get_output_format(config, json_output, table_output)
+    output_format = _get_output_format(config, json_output, table_output, csv_output, format_option)
 
     # Unwrap nested Event structure: [{'Event': {...}}, ...] -> [{...}, ...]
     raw_events = response.get("events", response.get("data", response.get("response", [])))
@@ -437,7 +441,9 @@ def search_events(
     else:
         events = raw_events
 
-    if output_format == "table":
+    if output_format == "csv":
+        print_csv(events)
+    elif output_format == "table":
         _print_table(events)
     else:
         print_json(events)
