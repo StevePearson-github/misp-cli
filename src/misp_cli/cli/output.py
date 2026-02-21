@@ -45,23 +45,24 @@ def print_table(data: list[dict], columns: list[str] | None = None) -> None:
         return
 
     from misp_cli.cli.app import get_app
+    from misp_cli.core.client import MISPCLient
+
     console = get_app().console
+
+    # Flatten nested dictionaries
+    flattened_data = [MISPCLient.flatten_dict(row) for row in data]
+
     table = Table(show_header=True, header_style="bold magenta")
 
     if columns:
         for col in columns:
             table.add_column(col.replace("_", " ").title())
     else:
-        for key in data[0].keys():
+        for key in flattened_data[0].keys():
             table.add_column(key.replace("_", " ").title())
 
-    for item in data:
-        row = []
-        for value in item.values():
-            if isinstance(value, (dict, list)):
-                row.append(str(len(value)))
-            else:
-                row.append(str(value))
+    for item in flattened_data:
+        row = [str(v) if v is not None else "" for v in item.values()]
         table.add_row(*row)
 
     console.print(table)
