@@ -188,35 +188,36 @@ class MISPCLient:
     def format_as_csv(data: list[dict], columns: list[str] | None = None) -> str:
         """
         Format data as CSV.
-        
+
         Args:
             data: List of dictionaries to format
             columns: Optional list of columns to include (in order)
-        
+
         Returns:
             CSV formatted string
         """
         if not data:
             return ""
 
+        # Flatten nested dictionaries in each row
+        flattened_data = [MISPCLient.flatten_dict(row) for row in data]
+
         # Determine columns to use
         if columns:
             keys = columns
         else:
-            keys = list(data[0].keys()) if data else []
+            keys = list(flattened_data[0].keys()) if flattened_data else []
 
         # Handle None values
         def clean_value(value: Any) -> str:
             if value is None:
                 return ""
-            elif isinstance(value, (dict, list)):
-                return str(len(value))
             return str(value)
 
         output = io.StringIO()
         writer = csv.DictWriter(output, fieldnames=keys, extrasaction="ignore")
         writer.writeheader()
-        for row in data:
+        for row in flattened_data:
             cleaned_row = {k: clean_value(v) for k, v in row.items() if k in keys}
             writer.writerow(cleaned_row)
 
