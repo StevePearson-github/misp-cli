@@ -149,7 +149,7 @@ def current_user(
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
 ):
-    """Show current user information."""
+    """Show current user information. (for this session's apikey)"""
     from misp_cli.cli.app import get_app
 
     app = get_app()
@@ -386,21 +386,3 @@ def enable_user(
         typer.echo(f"User {user_id} enabled successfully")
 
 
-@users_app.command("field-changes")
-def field_changes(
-    user_id: int = typer.Argument(..., help="User ID"),
-    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
-):
-    """Show field changes for a user."""
-    from misp_cli.cli.app import get_app
-
-    app = get_app()
-    config = app.profile
-    client = app.client
-
-    response = client.get_sync(f"/users/fieldChanges/{user_id}")
-
-    if config.output_format == "json" or json_output:
-        print_json(response)
-    else:
-        print_json(response)
