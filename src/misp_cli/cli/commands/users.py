@@ -80,7 +80,6 @@ def list_users(
     config = app.profile
     client = app.client
 
-    from urllib.parse import urlencode
 
     params: dict[str, Any] = {
         "limit": limit,
@@ -147,6 +146,8 @@ def show_user(
 @users_app.command("current")
 def current_user(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
 ):
     """Show current user information."""
     from misp_cli.cli.app import get_app
@@ -157,13 +158,14 @@ def current_user(
 
     response = client.get_sync("/users/view/me")
 
-    if config.output_format == "json" or json_output:
-        print_json(response)
+    output_format = get_output_format(config, json_output, table_output, csv_output)
+
+    if output_format == "csv":
+        print_csv([response])
+    elif output_format == "table":
+        print_table([response])
     else:
-        if isinstance(response, dict):
-            print_table([response])
-        else:
-            print_json(response)
+        print_json(response)
 
 
 @users_app.command("create")
