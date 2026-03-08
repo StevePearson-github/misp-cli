@@ -115,6 +115,7 @@ def list_events(
     ),
     quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
     minimal: bool = typer.Option(False, "--minimal", help="Return minimal event data"),
+    count: bool = typer.Option(False, "-c", "--count", help="Return only the count of events"),
 ):
     """List events with pagination and filtering."""
     from misp_cli.cli.app import get_app
@@ -209,6 +210,14 @@ def list_events(
 
     # Get pagination info from response
     total_count = response.get("total", len(events))
+
+    # Handle --count flag: return only the count
+    if count:
+        if json_output or format_option == "json":
+            print_json({"count": total_count})
+        else:
+            typer.echo(str(total_count))
+        raise typer.Exit()
 
     if not quiet:
         typer.echo(f"Showing {len(events)} of {total_count} event(s)")
