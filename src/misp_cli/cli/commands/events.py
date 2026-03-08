@@ -212,7 +212,9 @@ def list_events(
     total_count = response.get("total", len(events))
 
     # Handle --count flag: return only the count
-    if count:
+    # Note: count defaults to typer.Option(False), so check for explicit True
+    # to avoid truthy OptionInfo objects triggering this block
+    if count is True:
         if json_output or format_option == "json":
             print_json({"count": total_count})
         else:
