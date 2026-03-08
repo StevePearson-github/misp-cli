@@ -30,11 +30,13 @@ class MISPCLient:
         api_key: str,
         verify_ssl: bool = True,
         timeout: int = 30,
+        debug: bool = False,
     ):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.verify_ssl = verify_ssl
         self.timeout = timeout
+        self.debug = debug
         self._client: httpx.AsyncClient | None = None
 
     @property
@@ -81,6 +83,15 @@ class MISPCLient:
         """
         client = await self.get_client()
         url = f"{self.base_url}{endpoint}"
+
+        # Debug output
+        if self.debug:
+            import sys
+            print(f"[DEBUG] {method} {url}", file=sys.stderr)
+            if params:
+                print(f"[DEBUG] Params: {params}", file=sys.stderr)
+            if data:
+                print(f"[DEBUG] Body: {data}", file=sys.stderr)
 
         try:
             response = await client.request(
@@ -174,13 +185,14 @@ class MISPCLient:
         return {"data": response_data}
 
     @classmethod
-    def from_profile(cls, profile: MISPProfile) -> "MISPCLient":
+    def from_profile(cls, profile: MISPProfile, debug: bool = False) -> "MISPCLient":
         """Create client from MISPProfile configuration."""
         return cls(
             base_url=profile.url,
             api_key=profile.api_key,
             verify_ssl=profile.verify_ssl,
             timeout=profile.timeout,
+            debug=debug,
         )
 
     # Output formatting methods
