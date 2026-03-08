@@ -16,34 +16,34 @@ uv tool install --reinstall .
 
 ### Installation
 ```bash
-pip install -e ".[dev]"  # Install with dev dependencies
-pip install -e ".[test]"  # Install with test dependencies
+uv pip install -e ".[dev]"      # Install with dev dependencies
+uv pip install -e ".[test]"     # Install with test dependencies
 ```
 
 ### Running Tests
 ```bash
-pytest                          # Run all tests
-pytest tests/test_events.py     # Run specific test file
-pytest tests/test_events.py::test_list_events  # Run specific test
-pytest -v                      # Verbose output
-pytest --cov                   # With coverage report
+uv run pytest                          # Run all tests
+uv run pytest tests/test_events.py     # Run specific test file
+uv run pytest tests/test_events.py::test_list_events  # Run specific test
+uv run pytest -v                      # Verbose output
+uv run pytest --cov                   # With coverage report
 ```
 
 ### Type Checking
 ```bash
-mypy src/misp_cli/             # Run mypy type checker
+uv run mypy src/misp_cli/             # Run mypy type checker
 ```
 
 ### Linting and Formatting
 ```bash
-ruff check src/misp_cli/        # Lint with ruff
-ruff check --fix src/misp_cli/  # Lint and auto-fix
-black src/misp_cli/             # Format with black
+uv run ruff check src/misp_cli/        # Lint with ruff
+uv run ruff check --fix src/misp_cli/  # Lint and auto-fix
+uv run black src/misp_cli/             # Format with black
 ```
 
 ### All Checks (CI)
 ```bash
-ruff check && black --check && mypy
+uv run ruff check && uv run black --check && uv run mypy
 ```
 
 ## Code Style Guidelines
