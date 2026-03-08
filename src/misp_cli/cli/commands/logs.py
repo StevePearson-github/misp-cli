@@ -61,6 +61,8 @@ def list_logs(
         data: dict[str, Any] = {
             "limit": limit,
             "page": page,
+            "sort": "Log.id",
+            "direction": "asc",
         }
         if email:
             data["email"] = email
@@ -68,13 +70,21 @@ def list_logs(
             data["model"] = model
         if action:
             data["action"] = action
-        response = client.post_sync("/admin/logs", data=data)
+        #response = client.post_sync("/admin/logs/sort:Log.id/direction:asc", data=data)
+        response = client.post_sync("/logs/index/sort:Log.id/direction:asc", data=data)
+        #response = client.post_sync("/admin/logs", data=data)
+        #response = client.post_sync("/logs/index", data=data)
     else:
         params: dict[str, Any] = {
             "limit": limit,
             "page": page,
         }
-        response = client.get_sync("/logs/index", params=params)
+        #response = client.get_sync(f"/logs/index/limit:{limit}/sort:Log.id/direction:asc", params=params)
+        #response = client.get_sync(f"/logs/index/limit:{limit}/sort:Log.id/direction:asc")
+        #response = client.get_sync(f"/logs/index/limit:{limit}", params=params)
+        #response = client.get_sync(f"logs/index/limit:{limit}")
+        #response = client.get_sync(f"/logs/index/sort:Log.id/direction:desc", params=params)
+        response = client.get_sync(f"/logs/admin_index/limit:{limit}/sort:Log.id/direction:desc")
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     logs = unwrap_nested_data(response, "Log")
