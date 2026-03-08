@@ -90,7 +90,7 @@ def _print_table(data: list[dict], columns: list[str] | None = None) -> None:
 @events_app.command("list")
 def list_events(
     limit: int = typer.Option(50, "-l", "--limit", help="Maximum number of events"),
-    page: int = typer.Option(1, "-p", "--page", help="Page number"),
+    page: int | None = typer.Option(None, "-p", "--page", help="Page number"),
     search: str | None = typer.Option(None, "-s", "--search", help="Search query"),
     org: str | None = typer.Option(None, "-o", "--org", help="Organization filter"),
     from_date: str | None = typer.Option(
@@ -114,6 +114,7 @@ def list_events(
         None, "--format", help="Output format (json, table, csv)"
     ),
     quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
+    minimal: bool = typer.Option(False, "--minimal", help="Return minimal event data"),
 ):
     """List events with pagination and filtering."""
     from misp_cli.cli.app import get_app
@@ -136,7 +137,7 @@ def list_events(
     # Check if filters that require restSearch are provided
     # The GET /events/index endpoint doesn't support org filtering, so we need restSearch
     has_date_filter = bool(from_date or to_date or last or date or timestamp or publish_timestamp)
-    needs_rest_search = has_date_filter or org or page
+    needs_rest_search = has_date_filter or org is not None or page is not None
 
     if needs_rest_search:
         # Use POST to /events/restSearch for date filtering
@@ -181,7 +182,13 @@ def list_events(
         if publish_timestamp:
             params["publish_timestamp"] = publish_timestamp
 
-        response = client.get_sync("/events/index", params=params)
+        # Use POST with minimal flag for /events/index when minimal is requested
+        if minimal:
+            data = {"minimal": True}
+            response = client.post_sync("/events/index", data=data)
+        else:
+            #response = client.get_sync("/events/index", params=params)
+            response = client.get_sync("/events/index/sort:timestamp/direction:desc", params=params)
 
     output_format = _get_output_format(config, json_output, table_output, csv_output, format_option)
 
