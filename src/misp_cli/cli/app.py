@@ -28,8 +28,10 @@ class MISPApp:
         config_path: Path | None = None,
         profile: str | None = None,
         no_color: bool = False,
+        debug: bool = False,
     ):
         self.console = Console(no_color=no_color)
+        self.debug = debug
 
         # Load configuration
         self.config_manager = ConfigManager(config_path)
@@ -48,6 +50,7 @@ class MISPApp:
             api_key=self.profile.api_key,
             verify_ssl=self.profile.verify_ssl,
             timeout=self.profile.timeout,
+            debug=debug,
         )
 
     def get_output_format(self) -> str:
@@ -95,6 +98,12 @@ def callback(
         "--no-color",
         help="Disable colored output",
     ),
+    debug: bool = typer.Option(
+        False,
+        "-d",
+        "--debug",
+        help="Show API request details (endpoint and parameters)",
+    ),
     help: bool = typer.Option(
         False,
         "-h",
@@ -123,6 +132,7 @@ def callback(
             config_path=config,
             profile=profile,
             no_color=no_color,
+            debug=debug,
         )
         set_app(misp_app)
     except MISPConfigurationError as e:
