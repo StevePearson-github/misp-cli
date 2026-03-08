@@ -68,6 +68,7 @@ class TestTagsCommands:
 
     def test_search_tags(self):
         """Test searching for tags by name."""
+        import urllib.parse
         mock_app, mock_config, mock_client = setup_mock_app()
         mock_client.get_sync.return_value = {
             "Tag": [{"id": 1, "name": "test-tag", "color": "#0088cc"}]
@@ -79,8 +80,8 @@ class TestTagsCommands:
             mock_client.get_sync.assert_called_once()
             call_args = mock_client.get_sync.call_args
             # Search term should be in the path, URL-encoded
-            assert "/tags/search/" in call_args[0][0]
-            assert call_args[1]["params"]["search"] == "test"
+            expected_path = f"/tags/search/{urllib.parse.quote('test', safe='')}"
+            assert call_args[0][0] == expected_path
 
     def test_create_tag(self):
         """Test creating a new tag."""

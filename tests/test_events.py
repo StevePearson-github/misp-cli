@@ -167,7 +167,7 @@ class TestEventsCommands:
                 assert "/events/restSearch" in call_args[0][0]
 
     def test_events_list_org_filter(self):
-        """Test that org filter uses searchorg parameter."""
+        """Test that org filter uses org parameter."""
         mock_config = MagicMock()
         mock_config.url = "https://misp.example.com"
         mock_config.api_key = "test-key"
@@ -191,4 +191,4 @@ class TestEventsCommands:
             mock_client.post_sync.assert_called_once()
             call_args = mock_client.post_sync.call_args
             assert call_args[0][0] == "/events/restSearch"
-            assert call_args[1]["data"]["searchorg"] == "ACME Corp"
+            assert call_args[1]["data"]["org"] == "ACME Corp"
