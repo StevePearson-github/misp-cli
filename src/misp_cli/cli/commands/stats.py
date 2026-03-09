@@ -28,6 +28,10 @@ def stats_callback(
         typer.echo(ctx.get_help())
         raise typer.Exit()
 
+    # Default to system stats when no subcommand is provided
+    if ctx.invoked_subcommand is None:
+        stats_system()
+
 
 @stats_app.command("system")
 def stats_system():
