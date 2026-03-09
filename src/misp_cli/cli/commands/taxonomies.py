@@ -26,9 +26,10 @@ def taxonomies_callback(
     ),
 ):
     """Manage MISP taxonomies."""
-    if help:
+    # Show help if requested or no subcommand given
+    if help or ctx.invoked_subcommand is None:
         typer.echo(ctx.get_help())
-        raise typer.Exit()
+        raise typer.Exit(code=0)
 
 
 @taxonomies_app.command("list")

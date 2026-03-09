@@ -26,9 +26,10 @@ def event_blocklists_callback(
     ),
 ):
     """Manage MISP event blocklists."""
-    if help:
+    # Show help if requested or no subcommand given
+    if help or ctx.invoked_subcommand is None:
         typer.echo(ctx.get_help())
-        raise typer.Exit()
+        raise typer.Exit(code=0)
 
 
 @event_blocklists_app.command("list")

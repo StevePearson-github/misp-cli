@@ -27,9 +27,10 @@ def objects_callback(
     ),
 ):
     """Manage MISP objects."""
-    if help:
+    # Show help if requested or no subcommand given
+    if help or ctx.invoked_subcommand is None:
         typer.echo(ctx.get_help())
-        raise typer.Exit()
+        raise typer.Exit(code=0)
 
 
 @objects_app.command("list")

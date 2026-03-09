@@ -26,9 +26,10 @@ def tags_callback(
     ),
 ):
     """Manage MISP tags."""
-    if help:
+    # Show help if requested or no subcommand given
+    if help or ctx.invoked_subcommand is None:
         typer.echo(ctx.get_help())
-        raise typer.Exit()
+        raise typer.Exit(code=0)
 
 
 @tags_app.command("list")

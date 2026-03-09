@@ -24,9 +24,10 @@ def object_templates_callback(
     ),
 ):
     """Manage MISP object templates."""
-    if help:
+    # Show help if requested or no subcommand given
+    if help or ctx.invoked_subcommand is None:
         typer.echo(ctx.get_help())
-        raise typer.Exit()
+        raise typer.Exit(code=0)
 
 
 @object_templates_app.command("list")

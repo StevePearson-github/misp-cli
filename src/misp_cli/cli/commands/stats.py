@@ -24,9 +24,10 @@ def stats_callback(
     ),
 ):
     """View MISP statistics."""
-    if help:
+    # Show help if requested or no subcommand given
+    if help or ctx.invoked_subcommand is None:
         typer.echo(ctx.get_help())
-        raise typer.Exit()
+        raise typer.Exit(code=0)
 
     # Default to system stats when no subcommand is provided
     if ctx.invoked_subcommand is None:

@@ -14,7 +14,8 @@ app = typer.Typer(
     name="misp-cli",
     help="MISP CLI - Command-line interface for MISP",
     add_completion=True,
-    add_help_option=True,
+    add_help_option=False,
+    invoke_without_command=True,
 )
 
 
@@ -110,18 +111,22 @@ def callback(
         "--help",
         help="Show this help message",
         is_eager=True,
-        callback=lambda ctx, value: ctx.get_help() if value and not ctx.resilient_parsing else None,
     ),
 ):
     """MISP CLI - Command-line interface for MISP."""
+    # Show help if requested
+    if help:
+        typer.echo(ctx.get_help())
+        raise typer.Exit(code=0)
+
     # Skip initialization for config --generate or --set-default
     if "config" in sys.argv and ("--generate" in sys.argv or "--set-default" in sys.argv):
         return
 
-    # Check if help was requested
-    if help and not ctx.resilient_parsing:
+    # Show help if no subcommand was given
+    if ctx.invoked_subcommand is None:
         typer.echo(ctx.get_help())
-        raise typer.Exit()
+        raise typer.Exit(code=0)
 
     # Skip initialization during help/parsing
     if ctx.resilient_parsing:
