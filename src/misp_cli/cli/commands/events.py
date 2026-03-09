@@ -405,6 +405,7 @@ def unpublish_event(
 @events_app.command("search")
 def search_events(
     term: str = typer.Argument(..., help="Search term"),
+    limit: int = typer.Option(50, "-l", "--limit", help="Maximum number of results"),
     from_date: str | None = typer.Option(
         None, "--from", help="Start date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 7d)"
     ),
@@ -425,6 +426,7 @@ def search_events(
     format_option: str | None = typer.Option(
         None, "--format", help="Output format (json, table, csv)"
     ),
+    count: bool = typer.Option(False, "-c", "--count", help="Return only the count of events"),
 ):
     """Search for events."""
     from misp_cli.cli.app import get_app
@@ -434,6 +436,8 @@ def search_events(
     client = app.client
 
     data: dict[str, Any] = {"search": term}
+    if limit:
+        data["limit"] = limit
     if from_date:
         data["from"] = from_date
     if to_date:
@@ -461,6 +465,17 @@ def search_events(
             events = raw_events
     else:
         events = raw_events
+
+    # Get pagination info from response
+    total_count = response.get("total", len(events))
+
+    # Handle --count flag: return only the count
+    if count is True:
+        if json_output or format_option == "json":
+            print_json({"count": total_count})
+        else:
+            typer.echo(str(total_count))
+        raise typer.Exit()
 
     if output_format == "csv":
         print_csv(events)
