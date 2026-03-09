@@ -107,6 +107,7 @@ def list_events(
     publish_timestamp: str | None = typer.Option(
         None, "--publish-timestamp", help="Publication timestamp filter"
     ),
+    tag: str | None = typer.Option(None, "--tag", help="Tag filter (e.g., 'mytag')"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
@@ -138,7 +139,7 @@ def list_events(
     # Check if filters that require restSearch are provided
     # The GET /events/index endpoint doesn't support org filtering, so we need restSearch
     has_date_filter = bool(from_date or to_date or last or date or timestamp or publish_timestamp)
-    needs_rest_search = has_date_filter or org is not None or page is not None
+    needs_rest_search = has_date_filter or org is not None or page is not None or tag is not None
 
     if needs_rest_search:
         # Use POST to /events/restSearch for date filtering
@@ -168,6 +169,8 @@ def list_events(
             data["timestamp"] = timestamp
         if publish_timestamp:
             data["publish_timestamp"] = publish_timestamp
+        if tag:
+            data["tag"] = tag
 
         response = client.post_sync("/events/restSearch", data=data)
     else:
