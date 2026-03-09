@@ -406,6 +406,7 @@ def unpublish_event(
 def search_events(
     term: str = typer.Argument(..., help="Search term"),
     limit: int = typer.Option(50, "-l", "--limit", help="Maximum number of results"),
+    page: int | None = typer.Option(None, "-p", "--page", help="Page number"),
     from_date: str | None = typer.Option(
         None, "--from", help="Start date filter (e.g., 2024-03-19, 2024-03-19T11:10:24Z, 7d)"
     ),
@@ -438,6 +439,8 @@ def search_events(
     data: dict[str, Any] = {"search": term}
     if limit:
         data["limit"] = limit
+    if page:
+        data["page"] = page
     if from_date:
         data["from"] = from_date
     if to_date:
