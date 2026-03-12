@@ -81,7 +81,6 @@ def list_users(
     config = app.profile
     client = app.client
 
-
     params: dict[str, Any] = {
         "limit": limit,
         "page": page,
@@ -359,7 +358,7 @@ def disable_user(
     config = app.profile
     client = app.client
 
-    response = client.post_sync(f"/users/disable/{user_id}")
+    response = client.post_sync(f"/admin/users/edit/{user_id}", data={"User": {"disabled": True}})
 
     if config.output_format == "json" or json_output:
         print_json(response)
@@ -379,11 +378,9 @@ def enable_user(
     config = app.profile
     client = app.client
 
-    response = client.post_sync(f"/users/enable/{user_id}")
+    response = client.post_sync(f"/admin/users/edit/{user_id}", data={"User": {"disabled": False}})
 
     if config.output_format == "json" or json_output:
         print_json(response)
     else:
         typer.echo(f"User {user_id} enabled successfully")
-
-
