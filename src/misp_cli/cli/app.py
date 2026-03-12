@@ -2,6 +2,7 @@
 
 import sys
 from pathlib import Path
+from importlib.metadata import version as get_version
 
 import typer
 from rich.console import Console
@@ -10,11 +11,13 @@ from misp_cli.core.client import MISPCLient
 from misp_cli.core.config import ConfigManager
 from misp_cli.core.exceptions import MISPConfigurationError
 
+__version__ = get_version("misp-cli")
+
 app = typer.Typer(
     name="misp-cli",
-    help="MISP CLI - Command-line interface for MISP",
+    help=f"MISP CLI - Command-line interface for MISP (v{__version__})",
     add_completion=True,
-    add_help_option=False,
+    add_help_option=True,
     invoke_without_command=True,
 )
 
@@ -113,7 +116,7 @@ def callback(
         is_eager=True,
     ),
 ):
-    """MISP CLI - Command-line interface for MISP."""
+    """MISP CLI - Command-line interface for MISP (v{}).""".format(__version__)
     # Show help if requested
     if help:
         typer.echo(ctx.get_help())
