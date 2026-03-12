@@ -43,7 +43,7 @@ class TestUsersCommands:
         mock_client.post_sync.return_value = {
             "User": [
                 {"id": 1, "email": "user1@example.com", "org_id": 1, "role_id": 1},
-                {"id": 2, "email": "user2@example.com", "org_id": 1, "role_id": 2}
+                {"id": 2, "email": "user2@example.com", "org_id": 1, "role_id": 2},
             ]
         }
 
@@ -95,7 +95,7 @@ class TestUsersCommands:
                 last_name="User",
                 password="password123",
                 confirm_password="password123",
-                json_output=True
+                json_output=True,
             )
 
             mock_client.post_sync.assert_called_once()
@@ -119,7 +119,7 @@ class TestUsersCommands:
                 first_name=None,
                 last_name=None,
                 password=None,
-                json_output=True
+                json_output=True,
             )
 
             mock_client.post_sync.assert_called_once()
@@ -143,7 +143,7 @@ class TestUsersCommands:
         mock_client.post_sync.return_value = {
             "User": [
                 {"id": 1, "email": "user1@example.com", "org_id": 5},
-                {"id": 2, "email": "user2@example.com", "org_id": 5}
+                {"id": 2, "email": "user2@example.com", "org_id": 5},
             ]
         }
 
@@ -183,7 +183,9 @@ class TestUsersCommands:
         with patch("misp_cli.cli.app.get_app", return_value=mock_app):
             disable_user(user_id=1, force=True, json_output=True)
 
-            mock_client.post_sync.assert_called_once_with("/users/disable/1")
+            mock_client.post_sync.assert_called_once_with(
+                "/admin/users/edit/1", data={"User": {"disabled": True}}
+            )
 
     def test_enable_user(self):
         """Test enabling a user."""
@@ -193,7 +195,9 @@ class TestUsersCommands:
         with patch("misp_cli.cli.app.get_app", return_value=mock_app):
             enable_user(user_id=1, json_output=True)
 
-            mock_client.post_sync.assert_called_once_with("/users/enable/1")
+            mock_client.post_sync.assert_called_once_with(
+                "/admin/users/edit/1", data={"User": {"disabled": False}}
+            )
 
     def test_list_users_error_handling(self):
         """Test error handling when listing users fails."""
