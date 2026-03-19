@@ -739,8 +739,6 @@ def get_latest_events(
                 else event.get("Orgc", {})
             ),
             "status": event.get("published"),
-            "search_type": event.get("_search_type", "unknown"),
-            "search_value": event.get("_search_value", ""),
         }
         # Format timestamp to readable date
         if display_event["timestamp"]:
