@@ -623,9 +623,9 @@ async def _fetch_and_close_client(
     if not all_events:
         if not quiet:
             typer.echo(f"Fetching latest {count} event(s)...")
-        # Use same endpoint format as working events list command
-        endpoint = "/events/index/sort:timestamp/direction:desc"
-        response = await client.get(endpoint, params={"limit": count})
+        # Use same endpoint format as working events list command - limit must be in path
+        endpoint = f"/events/index/sort:timestamp/direction:desc/limit:{count}"
+        response = await client.get(endpoint)
         # Handle response - could be list, or dict with events/data keys
         events = (
             response
