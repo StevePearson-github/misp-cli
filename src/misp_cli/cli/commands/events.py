@@ -574,10 +574,23 @@ async def _fetch_and_close_client(
     tags: str | None,
     orgs: str | None,
     quiet: bool,
+    sort_by: str = "timestamp",
 ) -> list[dict[str, Any]]:
-    """Async helper to fetch latest events."""
+    """Async helper to fetch latest events.
+
+    Args:
+        client: MISP client instance
+        count: Number of events to fetch
+        tags: Comma-separated list of tags to filter by
+        orgs: Comma-separated list of organizations to filter by
+        quiet: Suppress non-essential output
+        sort_by: Sort field - "timestamp" (default) or "id" for eventid
+    """
 
     all_events: list[dict[str, Any]] = []
+
+    # Determine sort parameter based on sort_by option
+    sort_param = "id" if sort_by == "id" else "timestamp"
 
     # Process tags filter
     if tags:
@@ -585,8 +598,8 @@ async def _fetch_and_close_client(
         for tag in tag_list:
             if not quiet:
                 typer.echo(f"Searching for tag: {tag} (count: {count})")
-            # Use searchtag embedded in path like misp_event_checker.py - limit in path
-            endpoint = f"/events/index/searchtag:{tag}/sort:id/direction:desc/limit:{count}"
+            # Use searchtag embedded in path - limit and sort in path
+            endpoint = f"/events/index/searchtag:{tag}/sort:{sort_param}/direction:desc/limit:{count}"
             response = await client.get(endpoint)
             events = (
                 response
@@ -605,8 +618,8 @@ async def _fetch_and_close_client(
         for org in org_list:
             if not quiet:
                 typer.echo(f"Searching for organization: {org} (count: {count})")
-            # Use searchorg embedded in path - limit in path
-            endpoint = f"/events/index/searchorg:{org}/sort:id/direction:desc/limit:{count}"
+            # Use searchorg embedded in path - limit and sort in path
+            endpoint = f"/events/index/searchorg:{org}/sort:{sort_param}/direction:desc/limit:{count}"
             response = await client.get(endpoint)
         events = (
             response
@@ -624,7 +637,7 @@ async def _fetch_and_close_client(
         if not quiet:
             typer.echo(f"Fetching latest {count} event(s)...")
         # Use same endpoint format as working events list command - limit must be in path
-        endpoint = f"/events/index/sort:timestamp/direction:desc/limit:{count}"
+        endpoint = f"/events/index/sort:{sort_param}/direction:desc/limit:{count}"
         response = await client.get(endpoint)
         # Handle response - could be list, or dict with events/data keys
         events = (
@@ -648,6 +661,11 @@ def get_latest_events(
     orgs: str | None = typer.Option(
         None, "-o", "--orgs", help="Filter by organizations (comma-separated)"
     ),
+    eventid: bool = typer.Option(
+        False,
+        "--eventid",
+        help="Sort by event ID instead of timestamp",
+    ),
     verbose: bool = typer.Option(False, "-v", "--verbose", help="Show detailed event information"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
@@ -665,6 +683,7 @@ def get_latest_events(
         misp-cli events latest --tags "tag1"
         misp-cli events latest --orgs "ACME Corp"
         misp-cli events latest --tags "tag1,tag2" --count 3 --verbose
+        misp-cli events latest --eventid
     """
     from misp_cli.cli.app import get_app
 
@@ -672,9 +691,12 @@ def get_latest_events(
     config = app.profile
     client = app.client
 
+    # Determine sort_by based on --eventid flag (timestamp is default)
+    sort_by = "id" if eventid else "timestamp"
+
     # Use async to make multiple API calls in a single event loop
     all_events: list[dict[str, Any]] = asyncio.run(
-        _fetch_and_close_client(client, count, tags, orgs, quiet)
+        _fetch_and_close_client(client, count, tags, orgs, quiet, sort_by)
     )
 
     # Remove duplicates based on event ID
@@ -776,8 +798,9 @@ def get_latest_events(
         else:
             print_json(display_events)
 
-    # Print detailed information if --verbose flag is set (JSON mode handles this separately)
-    if verbose and output_format != "json":
+    # Print detailed information if --verbose flag is set
+    # (JSON and CSV modes handle this separately)
+    if verbose and output_format not in ("json", "csv"):
         typer.echo("\n" + "=" * 80)
         typer.echo("DETAILED EVENT INFORMATION")
         typer.echo("=" * 80 + "\n")
