@@ -1,12 +1,15 @@
 """Event management commands for MISP CLI."""
 
+import asyncio
 import json
+from datetime import datetime
 from typing import Any
 
 import typer
 from rich.table import Table
 
 from misp_cli.cli.output import print_csv, print_json
+from misp_cli.core.client import MISPCLient
 from misp_cli.core.config import MISPProfile
 
 events_app = typer.Typer(
@@ -192,7 +195,7 @@ def list_events(
             data = {"minimal": True}
             response = client.post_sync("/events/index", data=data)
         else:
-            #response = client.get_sync("/events/index", params=params)
+            # response = client.get_sync("/events/index", params=params)
             response = client.get_sync("/events/index/sort:timestamp/direction:desc", params=params)
 
     output_format = _get_output_format(config, json_output, table_output, csv_output, format_option)
@@ -563,3 +566,255 @@ def list_event_attributes(
         _print_table(attributes)
     else:
         print_json(attributes)
+
+
+async def _fetch_and_close_client(
+    client: MISPCLient,
+    count: int,
+    tags: str | None,
+    orgs: str | None,
+    quiet: bool,
+) -> list[dict[str, Any]]:
+    """Async helper to fetch latest events."""
+
+    all_events: list[dict[str, Any]] = []
+
+    # Process tags filter
+    if tags:
+        tag_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
+        for tag in tag_list:
+            if not quiet:
+                typer.echo(f"Searching for tag: {tag} (count: {count})")
+            # Use searchtag embedded in path like misp_event_checker.py - limit in path
+            endpoint = f"/events/index/searchtag:{tag}/sort:id/direction:desc/limit:{count}"
+            response = await client.get(endpoint)
+            events = (
+                response
+                if isinstance(response, list)
+                else response.get("events", response.get("data", []))
+            )
+            if events:
+                for event in events:
+                    event["_search_type"] = "tag"
+                    event["_search_value"] = tag
+                all_events.extend(events)
+
+    # Process orgs filter
+    if orgs:
+        org_list = [org.strip() for org in orgs.split(",") if org.strip()]
+        for org in org_list:
+            if not quiet:
+                typer.echo(f"Searching for organization: {org} (count: {count})")
+            # Use searchorg embedded in path - limit in path
+            endpoint = f"/events/index/searchorg:{org}/sort:id/direction:desc/limit:{count}"
+            response = await client.get(endpoint)
+        events = (
+            response
+            if isinstance(response, list)
+            else response.get("events", response.get("data", []))
+        )
+        if events:
+            for event in events:
+                event["_search_type"] = "org"
+                event["_search_value"] = org
+            all_events.extend(events)
+
+    # If no filters specified, get the latest events
+    if not all_events:
+        if not quiet:
+            typer.echo(f"Fetching latest {count} event(s)...")
+        # Use same endpoint format as working events list command
+        endpoint = "/events/index/sort:timestamp/direction:desc"
+        response = await client.get(endpoint, params={"limit": count})
+        # Handle response - could be list, or dict with events/data keys
+        events = (
+            response
+            if isinstance(response, list)
+            else response.get("events", response.get("data", []))
+        )
+        if events:
+            for event in events:
+                event["_search_type"] = "latest"
+                event["_search_value"] = "none (default)"
+            all_events = events
+
+    return all_events
+
+
+@events_app.command("latest")
+def get_latest_events(
+    count: int = typer.Option(1, "-c", "--count", help="Number of events to return"),
+    tags: str | None = typer.Option(None, "--tags", help="Filter by tags (comma-separated)"),
+    orgs: str | None = typer.Option(
+        None, "-o", "--orgs", help="Filter by organizations (comma-separated)"
+    ),
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Show detailed event information"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
+    format_option: str | None = typer.Option(
+        None, "--format", help="Output format (json, table, csv)"
+    ),
+    quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
+):
+    """Get the latest events with optional filtering by tags or organizations.
+
+    Examples:
+        misp-cli events latest
+        misp-cli events latest --count 5
+        misp-cli events latest --tags "tag1"
+        misp-cli events latest --orgs "ACME Corp"
+        misp-cli events latest --tags "tag1,tag2" --count 3 --verbose
+    """
+    from misp_cli.cli.app import get_app
+
+    app = get_app()
+    config = app.profile
+    client = app.client
+
+    # Use async to make multiple API calls in a single event loop
+    all_events: list[dict[str, Any]] = asyncio.run(
+        _fetch_and_close_client(client, count, tags, orgs, quiet)
+    )
+
+    # Remove duplicates based on event ID
+    seen_ids: set[int] = set()
+    unique_events: list[dict[str, Any]] = []
+    for event in all_events:
+        event_id = event.get("id")
+        if event_id is not None and event_id not in seen_ids:
+            seen_ids.add(event_id)
+            unique_events.append(event)
+
+    all_events = unique_events
+
+    if not all_events:
+        typer.echo("No events found")
+        raise typer.Exit(code=0)
+
+    # Determine output format
+    output_format = _get_output_format(config, json_output, table_output, csv_output, format_option)
+
+    if not quiet:
+        typer.echo(f"\nFound {len(all_events)} event(s)")
+
+    # Prepare simplified event data for display
+    display_events: list[dict[str, Any]] = []
+    for event in all_events:
+        display_event = {
+            "id": event.get("id"),
+            "uuid": event.get("uuid"),
+            "info": (
+                event.get("info", "")[:60] + "..."
+                if len(event.get("info", "")) > 60
+                else event.get("info", "")
+            ),
+            "date": event.get("date"),
+            "timestamp": event.get("timestamp"),
+            "org": (
+                event.get("Orgc", {}).get("name")
+                if isinstance(event.get("Orgc"), dict)
+                else event.get("Orgc", {})
+            ),
+            "status": event.get("published"),
+            "search_type": event.get("_search_type", "unknown"),
+            "search_value": event.get("_search_value", ""),
+        }
+        # Format timestamp to readable date
+        if display_event["timestamp"]:
+            try:
+                dt = datetime.fromtimestamp(int(display_event["timestamp"]))
+                display_event["timestamp"] = dt.strftime("%Y-%m-%d %H:%M:%S")
+            except (ValueError, TypeError):
+                pass
+        # Format published status
+        if display_event["status"] is True:
+            display_event["status"] = "Published"
+        elif display_event["status"] is False:
+            display_event["status"] = "Draft"
+        else:
+            display_event["status"] = "Unknown"
+        display_events.append(display_event)
+
+    if output_format == "csv":
+        print_csv(display_events)
+    elif output_format == "table":
+        _print_table(display_events)
+    else:
+        # JSON output - use verbose mode to show full event data
+        if verbose:
+            # Include full event data for each event
+            full_events = []
+            for event in all_events:
+                full_event = {
+                    "id": event.get("id"),
+                    "uuid": event.get("uuid"),
+                    "info": event.get("info"),
+                    "date": event.get("date"),
+                    "timestamp": event.get("timestamp"),
+                    "distribution": event.get("distribution"),
+                    "threat_level_id": event.get("threat_level_id"),
+                    "analysis": event.get("analysis"),
+                    "published": event.get("published"),
+                    "org": (
+                        event.get("Orgc", {}).get("name")
+                        if isinstance(event.get("Orgc"), dict)
+                        else None
+                    ),
+                    "org_id": (
+                        event.get("Orgc", {}).get("id")
+                        if isinstance(event.get("Orgc"), dict)
+                        else None
+                    ),
+                    "tags": [tag.get("name") for tag in event.get("Tag", [])],
+                    "attribute_count": len(event.get("Attribute", [])),
+                    "search_type": event.get("_search_type"),
+                    "search_value": event.get("_search_value"),
+                }
+                full_events.append(full_event)
+            print_json(full_events)
+        else:
+            print_json(display_events)
+
+    # Print detailed information if --verbose flag is set (JSON mode handles this separately)
+    if verbose and output_format != "json":
+        typer.echo("\n" + "=" * 80)
+        typer.echo("DETAILED EVENT INFORMATION")
+        typer.echo("=" * 80 + "\n")
+
+        for event in all_events:
+            typer.echo(f"[bold]Event ID:[/bold] {event.get('id')}")
+            typer.echo(f"[bold]UUID:[/bold] {event.get('uuid')}")
+            typer.echo(f"[bold]Info:[/bold] {event.get('info')}")
+            typer.echo(f"[bold]Date:[/bold] {event.get('date')}")
+
+            # Format timestamp
+            ts = event.get("timestamp")
+            if ts:
+                try:
+                    dt = datetime.fromtimestamp(int(ts))
+                    typer.echo(f"[bold]Timestamp:[/bold] {dt.strftime('%Y-%m-%d %H:%M:%S')}")
+                except (ValueError, TypeError):
+                    typer.echo(f"[bold]Timestamp:[/bold] {ts}")
+
+            typer.echo(f"[bold]Organization:[/bold] {event.get('Orgc', {}).get('name', 'N/A')}")
+            typer.echo(f"[bold]Published:[/bold] {'Yes' if event.get('published') else 'No'}")
+            typer.echo(f"[bold]Distribution:[/bold] {event.get('distribution')}")
+            typer.echo(f"[bold]Threat Level:[/bold] {event.get('threat_level_id')}")
+
+            # Show tags
+            tags = event.get("Tag", [])
+            if tags:
+                tag_names = ", ".join(
+                    [tag.get("name", "") for tag in tags if isinstance(tag, dict)]
+                )
+                typer.echo(f"[bold]Tags:[/bold] {tag_names}")
+
+            # Show attribute count
+            attr_count = len(event.get("Attribute", []))
+            typer.echo(f"[bold]Attributes:[/bold] {attr_count}")
+
+            # Show search metadata
+            typer.echo(f"[bold]Search Type:[/bold] {event.get('_search_type')}")
+            typer.echo(f"[bold]Search Value:[/bold] {event.get('_search_value')}")
+            typer.echo()
