@@ -122,7 +122,19 @@ def list_events(
     minimal: bool = typer.Option(False, "--minimal", help="Return minimal event data"),
     count: bool = typer.Option(False, "-c", "--count", help="Return only the count of events"),
 ):
-    """List events with pagination and filtering."""
+    """List events with pagination and filtering.
+
+    Examples:
+        misp-cli events list
+        misp-cli events list --limit 10
+        misp-cli events list --search "ransomware"
+        misp-cli events list --org "ACME Corp"
+        misp-cli events list --from 2024-01-01 --to 2024-03-19
+        misp-cli events list --last 7d
+        misp-cli events list --tag "threat-report"
+        misp-cli events list --json
+        misp-cli events list --count
+    """
     from misp_cli.cli.app import get_app
 
     app = get_app()
@@ -246,7 +258,13 @@ def show_event(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
 ):
-    """Show details of a specific event."""
+    """Show details of a specific event.
+
+    Examples:
+        misp-cli events show 1234
+        misp-cli events show 1234 --context
+        misp-cli events show 1234 --json
+    """
     from misp_cli.cli.app import get_app
 
     app = get_app()
@@ -301,7 +319,14 @@ def create_event(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
 ):
-    """Create a new event in MISP."""
+    """Create a new event in MISP.
+
+    Examples:
+        misp-cli events create --info "New malware detected"
+        misp-cli events create --info "Phishing campaign" --threat-level 1
+        misp-cli events create --info "Test event" --distribution 0
+        misp-cli events create --info "Dated event" --date 2024-03-15
+    """
     from misp_cli.cli.app import get_app
     from misp_cli.core.exceptions import MISPAPIError
 
@@ -348,7 +373,12 @@ def delete_event(
     force: bool = typer.Option(False, "-f", "--force", help="Force deletion without confirmation"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
-    """Delete an event."""
+    """Delete an event.
+
+    Examples:
+        misp-cli events delete 1234
+        misp-cli events delete 1234 --force
+    """
     from misp_cli.cli.app import get_app
 
     if not force:
@@ -371,7 +401,12 @@ def publish_event(
     event_id: int = typer.Argument(..., help="Event ID to publish"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
-    """Publish an event."""
+    """Publish an event.
+
+    Examples:
+        misp-cli events publish 1234
+        misp-cli events publish 1234 --json
+    """
     from misp_cli.cli.app import get_app
 
     app = get_app()
@@ -391,7 +426,12 @@ def unpublish_event(
     event_id: int = typer.Argument(..., help="Event ID to unpublish"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
-    """Unpublish an event."""
+    """Unpublish an event.
+
+    Examples:
+        misp-cli events unpublish 1234
+        misp-cli events unpublish 1234 --json
+    """
     from misp_cli.cli.app import get_app
 
     app = get_app()
@@ -433,7 +473,15 @@ def search_events(
     ),
     count: bool = typer.Option(False, "-c", "--count", help="Return only the count of events"),
 ):
-    """Search for events."""
+    """Search for events.
+
+    Examples:
+        misp-cli events search "malware"
+        misp-cli events search "ransomware" --limit 10
+        misp-cli events search "phishing" --from 2024-01-01
+        misp-cli events search "APT" --json
+        misp-cli events search "threat" --count
+    """
     from misp_cli.cli.app import get_app
 
     app = get_app()
@@ -501,7 +549,14 @@ def export_event(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
 ):
-    """Export an event from MISP in the specified format."""
+    """Export an event from MISP in the specified format.
+
+    Examples:
+        misp-cli events export 1234
+        misp-cli events export 1234 --format csv
+        misp-cli events export 1234 --format xml
+        misp-cli events export 1234 --json
+    """
     from misp_cli.cli.app import get_app
     from misp_cli.core.exceptions import MISPAPIError
 
@@ -549,7 +604,13 @@ def list_event_attributes(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
 ):
-    """List attributes of an event."""
+    """List attributes of an event.
+
+    Examples:
+        misp-cli events attributes 1234
+        misp-cli events attributes 1234 --json
+        misp-cli events attributes 1234 --table
+    """
     from misp_cli.cli.app import get_app
 
     app = get_app()
@@ -675,7 +736,7 @@ def get_latest_events(
     ),
     quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
 ):
-    """Get the latest events with optional filtering by tags or organizations.
+    """Get the latest events with optional filtering by tags, orgs, and count.
 
     Examples:
         misp-cli events latest

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "misp-cli"
-version = "0.1.0"
+version = "0.1.1"
 description = "Comprehensive CLI tool for interacting with MISP (Malware Information Sharing Platform)"
 readme = "README.md"
 license = {text = "MIT"}

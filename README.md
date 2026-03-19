@@ -235,6 +235,7 @@ misp-cli events create --help
 |---------|-------------|
 | [`events list`](##examples) | List events with pagination and filtering |
 | [`events show`](##examples) | Show details of a specific event |
+| [`events latest`](##examples) | Get the latest events with optional filtering |
 | [`events create`](##examples) | Create a new event |
 | [`events delete`](##examples) | Delete an event |
 | [`events publish`](##examples) | Publish an event |
@@ -379,6 +380,15 @@ misp-cli events search "ransomware"
 
 # Show event details
 misp-cli events show 1234
+
+# Get the latest event
+misp-cli events latest
+
+# Get latest 5 events filtered by tag
+misp-cli events latest --tags "threat-report" --count 5
+
+# Get latest events from specific organizations
+misp-cli events latest --orgs "ACME Corp,Example Org"
 
 # Create a new event
 misp-cli events create --info "New malware sample" --threat-level 2
