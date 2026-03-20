@@ -11,7 +11,8 @@ A comprehensive command-line interface for interacting with [MISP](https://www.m
 - [Available Commands](#available-commands)
 - [Examples](#examples)
 - [Date Filtering](#date-filtering)
-- [Development](#development)
+- [Development](docs/Development.md)
+
 - [License](#license)
 
 ## Features
@@ -45,14 +46,14 @@ uv tool install .
 pip install .
 ```
 
-### Install Development Dependencies
+### Updating
 
 ```bash
-# Install with development dependencies using uv
-uv install --dev .
+# pull latest source
+git pull
 
-# Or with pip
-pip install -e ".[dev]"
+# reinstall
+uv tool install --reinstall .
 ```
 
 ### Verify Installation
@@ -193,6 +194,15 @@ Check if your configuration is valid:
 misp-cli config --validate
 ```
 
+### Set Default Configuration
+
+Set the default configuration:
+
+```bash
+misp-cli config --set-default production
+```
+
+
 ## Usage
 
 ### Global Options
@@ -206,7 +216,7 @@ misp-cli [OPTIONS] COMMAND [ARGS]...
 | `-c, --config FILE` | Path to configuration file |
 | `-p, --profile TEXT` | Profile name to use from configuration |
 | `--no-color` | Disable colored output |
-| `-h, --help` | Show help message |
+| `-h, --help` | Show help message (note that shortform -h doesn't work for many nested commands due to conflicts) |
 | `--install-completion` | Install shell completion for the current shell |
 | `--show-completion` | Show shell completion to copy or customize installation |
 
@@ -233,9 +243,9 @@ misp-cli events create --help
 
 | Command | Description |
 |---------|-------------|
+| [`events latest`](##examples) | Get the latest events with optional filtering |
 | [`events list`](##examples) | List events with pagination and filtering |
 | [`events show`](##examples) | Show details of a specific event |
-| [`events latest`](##examples) | Get the latest events with optional filtering |
 | [`events create`](##examples) | Create a new event |
 | [`events delete`](##examples) | Delete an event |
 | [`events publish`](##examples) | Publish an event |
@@ -304,11 +314,11 @@ misp-cli events create --help
 | `servers delete` | Remove a server |
 | `servers test` | Test server connection |
 
-### Galaxy Management
 
 | Command | Description |
 |---------|-------------|
 | `galaxies list` | List galaxies |
+### Galaxy Management
 | `galaxies show` | Show galaxy details |
 | `galaxies elements` | List galaxy elements |
 
@@ -431,8 +441,8 @@ misp-cli attributes categories
 # List tags
 misp-cli tags list --limit 100
 
-# Search for tags
-misp-cli tags search "APT"
+# Wildcard search for tags
+misp-cli tags search "%APT%" --csv
 
 # Create a new tag
 misp-cli tags create --name "APT29" --color "#ff6600" --exportable
@@ -582,7 +592,7 @@ misp-cli stats tags
 
 ## Date Filtering
 
-All search commands support powerful date filtering options to help you find events, attributes, and objects within specific time ranges.
+All search commands support powerful date filtering options to help you find events, attributes, and objects within specific time ranges. (Note that the tags command doesn't support --from and --to)
 
 ### Date Filtering Parameters
 
@@ -597,27 +607,27 @@ All search commands support powerful date filtering options to help you find eve
 ### Supported Date Formats
 
 - **Relative**: `7d`, `14d`, `30d`, `5h`, `30m` (days, hours, minutes)
-- **ISO 8601**: `2024-03-19T11:10:24Z`, `2024-03-19T00:00:00`
+- **ISO 8601**: `2026-03-19T11:10:24Z`, `2026-03-19T00:00:00`
 - **Unix timestamp**: `1617875568`
-- **Date only**: `2024-03-19`
+- **Date only**: `2026-03-19`
 
 ### Examples
 
 ```bash
 # List attributes from a specific date range
-misp-cli attributes list --from 2024-01-01 --to 2024-12-31
+misp-cli attributes list --from 2026-01-01 --to 2026-12-31
 
 # Search for events modified in the last 7 days
 misp-cli events search --last 7d
 
-# List objects created in Q1 2024
-misp-cli objects list --from 2024-01-01T00:00:00Z --to 2024-03-31T23:59:59Z
+# List objects created in Q1 2026
+misp-cli objects list --from 2026-01-01T00:00:00Z --to 2026-03-31T23:59:59Z
 
 # Find events by exact date
-misp-cli events list --date 2024-06-15
+misp-cli events list --date 2026-06-15
 
 # Search for attributes with specific timestamp
-misp-cli attributes search "malware" --from 2024-01-01
+misp-cli attributes search "malware" --from 2026-01-01
 
 # Use Unix timestamp for precise filtering
 misp-cli events list --from 1672531200 --to 1704067199
@@ -629,91 +639,13 @@ Date filters can be combined with other filtering options:
 
 ```bash
 # Filter by date range and organization
-misp-cli events list --from 2024-01-01 --org "ACME Corp"
+misp-cli events list --from 2026-01-01 --org "ACME Corp"
 
 # Search for IP attributes in a time range
-misp-cli attributes list --type "ip-src" --from 2024-01-01 --to 2024-06-30
+misp-cli attributes list --type "ip-src" --from 2026-01-01 --to 2026-06-30
 
 # Last modified with event filter
 misp-cli objects list --event 1234 --last 30d
-```
-
-## Development
-
-### Project Structure
-
-```
-misp-cli/
-├── pyproject.toml          # Project configuration
-├── README.md              # This file
-├── src/
-│   └── misp_cli/
-│       ├── __init__.py    # Package initialization
-│       ├── __main__.py     # Entry point
-│       ├── cli/
-│       │   ├── app.py      # Main CLI application
-│       │   └── commands/   # Command modules
-│       └── core/
-│           ├── client.py   # MISP API client
-│           ├── config.py  # Configuration management
-│           └── exceptions.py
-├── tests/                  # Test suite
-└── docs/                   # Documentation
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=misp_cli
-
-# Run specific test file
-pytest tests/test_events.py
-```
-
-### Code Quality
-
-```bash
-# Run linting
-ruff check src/misp_cli/
-
-# Format code
-black src/misp_cli/
-
-# Type checking
-mypy src/misp_cli/
-```
-
-### Adding New Commands
-
-To add a new command module:
-
-1. Create a new file in `src/misp_cli/cli/commands/`
-2. Define a Typer app for your commands
-3. Import and register the app in `src/misp_cli/cli/app.py`
-
-Example command structure:
-
-```python
-import typer
-from misp_cli.core.client import MISPCLient
-from misp_cli.core.config import MISPConfig
-
-myapp = typer.Typer(help="Manage my resource")
-
-@myapp.command("list")
-def list_resources():
-    """List resources."""
-    config = MISPConfig.from_file()
-    client = MISPCLient(
-        base_url=config.url,
-        api_key=config.api_key,
-        verify_ssl=config.verify_ssl,
-    )
-    # Your implementation here
 ```
 
 ## License
