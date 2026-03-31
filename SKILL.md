@@ -1,6 +1,17 @@
-# misp-cli Skills Reference
+---
+name: misp-cli
+description: Complete command reference and usage guide for the misp-cli tool - a Python CLI for interacting with MISP (Malware Information Sharing Platform) instances. Use this skill whenever the user asks about misp-cli commands, options, or workflows, wants to know how to list/create/delete/export MISP events, attributes, tags, users, feeds, galaxies, or any other MISP resource, needs help with misp-cli configuration or profiles, or is working in the misp-cli codebase and needs to know what commands exist or how they behave. Always consult this skill when the user mentions misp-cli, MISP events, MISP attributes, or any misp-cli subcommand.
+---
 
-A quick-reference guide to everything `misp-cli` can do.
+# misp-cli Skill
+
+This skill provides the authoritative command reference for `misp-cli`. When helping a user with any `misp-cli` task:
+
+1. **Use the command reference below** to give accurate, copy-pasteable commands.
+2. **Prefer `events latest`** over `events list --limit 1` when the user wants the most recent event(s).
+3. **Remind users of output format flags** (`--json`, `--table`/`-t`, `--csv`) when they ask about output or piping.
+4. **Use `--profile NAME`** when the user has multiple MISP instances configured.
+5. **Use `--debug`** to show API call details when troubleshooting connectivity or auth issues.
 
 ---
 
