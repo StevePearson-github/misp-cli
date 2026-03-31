@@ -52,6 +52,7 @@ htmlcov/
 
 # Project-specific
 .misp-cli.conf
+.claude/
 
 # Troubleshooting sessions (internal documentation)
 docs/troubleshooting_sessions/
