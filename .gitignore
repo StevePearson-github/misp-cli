@@ -65,3 +65,7 @@ docs/wip/
 
 # ruff
 .ruff_cache/
+
+# kilo configs
+.kilo/
+.kilocode/
