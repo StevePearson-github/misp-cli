@@ -118,15 +118,6 @@ timeout = 30
 output_format = json
 colorize = true
 
-[profile:default]
-; Default profile
-url = https://misp.example.com
-api_key = your-api-key-here
-verify_ssl = true
-timeout = 30
-output_format = json
-colorize = true
-
 [profile:production]
 ; Production MISP instance
 url = https://misp.production.example.com
@@ -134,16 +125,12 @@ api_key = your-production-api-key
 verify_ssl = true
 timeout = 60
 output_format = table
-colorize = true
 
 [profile:staging]
 ; Staging MISP instance
 url = https://misp.staging.example.com
 api_key = your-staging-api-key
 verify_ssl = false
-timeout = 30
-output_format = json
-colorize = true
 
 [profile:sandbox]
 ; Local development/sandbox
@@ -151,7 +138,7 @@ url = http://localhost:5000
 api_key = your-sandbox-api-key
 verify_ssl = false
 timeout = 15
-output_format = json
+output_format = csv
 colorize = false
 ```
 
