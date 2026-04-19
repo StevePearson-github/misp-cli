@@ -18,6 +18,9 @@ attributes_app = typer.Typer(
 @attributes_app.callback()
 def attributes_callback(
     ctx: typer.Context,
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    table_output: bool = typer.Option(False, "-T", "--table", help="Output as table"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
     help: bool = typer.Option(
         False,
         "-h",
@@ -27,10 +30,26 @@ def attributes_callback(
     ),
 ):
     """Manage MISP attributes."""
+    from misp_cli.cli.app import get_app
+
     # Show help if requested or no subcommand given
     if help or ctx.invoked_subcommand is None:
-        typer.echo(ctx.get_help())
+        app = get_app()
+        config = app.profile
+        output_format = get_output_format(config, json_output, table_output, csv_output)
+
+        if output_format == "csv":
+            # Top-level attributes aren't available without an event; show a message and help
+            typer.echo(
+                "CSV output requires an event context. Use a subcommand like 'list' or 'search'."
+            )
+        elif output_format == "json":
+            typer.echo(ctx.get_help())
+        else:
+            typer.echo(ctx.get_help())
         raise typer.Exit(code=0)
+
+    # If a subcommand is invoked, it handles its own output formatting
 
 
 def _print_table(data: list[dict], columns: list[str] | None = None) -> None:
