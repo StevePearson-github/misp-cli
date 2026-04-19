@@ -238,7 +238,6 @@ misp-cli events create --help
 | [`events publish`](##examples) | Publish an event |
 | [`events unpublish`](##examples) | Unpublish an event |
 | [`events search`](##examples) | Search for events |
-| [`events export`](##examples) | Export an event |
 | [`events attributes`](##examples) | List attributes of an event |
 
 ### Attribute Management
@@ -301,11 +300,11 @@ misp-cli events create --help
 | `servers delete` | Remove a server |
 | `servers test` | Test server connection |
 
+### Galaxy Management
 
 | Command | Description |
 |---------|-------------|
 | `galaxies list` | List galaxies |
-### Galaxy Management
 | `galaxies show` | Show galaxy details |
 | `galaxies elements` | List galaxy elements |
 
@@ -392,9 +391,6 @@ misp-cli events create --info "New malware sample" --threat-level 2
 
 # Publish an event
 misp-cli events publish 1234
-
-# Export an event as JSON
-misp-cli events export 1234 --format json
 
 # List attributes for an event
 misp-cli events attributes 1234 --table

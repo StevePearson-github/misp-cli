@@ -1,8 +1,8 @@
 """Command-line interface for MISP CLI."""
 
 import sys
-from pathlib import Path
 from importlib.metadata import version as get_version
+from pathlib import Path
 
 import typer
 from rich.console import Console
@@ -116,7 +116,7 @@ def callback(
         is_eager=True,
     ),
 ):
-    """MISP CLI - Command-line interface for MISP (v{}).""".format(__version__)
+    f"""MISP CLI - Command-line interface for MISP (v{__version__})."""
     # Show help if requested
     if help:
         typer.echo(ctx.get_help())

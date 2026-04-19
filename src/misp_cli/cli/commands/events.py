@@ -1,7 +1,6 @@
 """Event management commands for MISP CLI."""
 
 import asyncio
-import json
 from datetime import datetime
 from typing import Any
 
@@ -540,64 +539,6 @@ def search_events(
         print_json(events)
 
 
-@events_app.command("export")
-def export_event(
-    event_id: int = typer.Argument(..., help="Event ID to export"),
-    format: str = typer.Option(
-        "json", "-f", "--format", help="Export format (json, csv, xml, striing, json2, rpz, misp2)"
-    ),
-    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
-    quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
-):
-    """Export an event from MISP in the specified format.
-
-    Examples:
-        misp-cli events export 1234
-        misp-cli events export 1234 --format csv
-        misp-cli events export 1234 --format xml
-        misp-cli events export 1234 --json
-    """
-    from misp_cli.cli.app import get_app
-    from misp_cli.core.exceptions import MISPAPIError
-
-    app = get_app()
-    config = app.profile
-    client = app.client
-
-    try:
-        response = client.get_sync(f"/events/export/{event_id}", params={"format": format})
-
-        if config.output_format == "json" or json_output:
-            # If response is a dict, print as JSON; otherwise print raw
-            if isinstance(response, dict):
-                print_json(response)
-            else:
-                try:
-                    print_json(json.loads(response))
-                except (json.JSONDecodeError, TypeError):
-                    print_json({"raw": response})
-        else:
-            if isinstance(response, dict):
-                data = response.get("data", response)
-                if isinstance(data, dict):
-                    print_json(data)
-                else:
-                    typer.echo(str(data))
-            else:
-                typer.echo(str(response))
-    except MISPAPIError as e:
-        if e.status_code == 404:
-            typer.echo(f"Error: Event {event_id} not found", err=True)
-        elif e.status_code == 403:
-            typer.echo(
-                f"Error: Permission denied to export event {event_id}. Check your role permissions.",
-                err=True,
-            )
-        else:
-            typer.echo(f"Error exporting event: {e.message}", err=True)
-        raise typer.Exit(1) from None
-
-
 @events_app.command("attributes")
 def list_event_attributes(
     event_id: int = typer.Argument(..., help="Event ID"),
@@ -660,7 +601,9 @@ async def _fetch_and_close_client(
             if not quiet:
                 typer.echo(f"Searching for tag: {tag} (count: {count})")
             # Use searchtag embedded in path - limit and sort in path
-            endpoint = f"/events/index/searchtag:{tag}/sort:{sort_param}/direction:desc/limit:{count}"
+            endpoint = (
+                f"/events/index/searchtag:{tag}/sort:{sort_param}/direction:desc/limit:{count}"
+            )
             response = await client.get(endpoint)
             events = (
                 response
@@ -680,7 +623,9 @@ async def _fetch_and_close_client(
             if not quiet:
                 typer.echo(f"Searching for organization: {org} (count: {count})")
             # Use searchorg embedded in path - limit and sort in path
-            endpoint = f"/events/index/searchorg:{org}/sort:{sort_param}/direction:desc/limit:{count}"
+            endpoint = (
+                f"/events/index/searchorg:{org}/sort:{sort_param}/direction:desc/limit:{count}"
+            )
             response = await client.get(endpoint)
         events = (
             response
