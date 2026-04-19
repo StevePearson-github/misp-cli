@@ -256,6 +256,7 @@ def show_event(
     context: bool = typer.Option(False, "-c", "--context", help="Include context"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
 ):
     """Show details of a specific event.
 
@@ -263,6 +264,7 @@ def show_event(
         misp-cli events show 1234
         misp-cli events show 1234 --context
         misp-cli events show 1234 --json
+        misp-cli events show 1234 --csv
     """
     from misp_cli.cli.app import get_app
 
@@ -273,9 +275,14 @@ def show_event(
     params = {"context": 1} if context else {}
     response = client.get_sync(f"/events/view/{event_id}", params=params)
 
-    output_format = _get_output_format(config, json_output, table_output)
+    output_format = _get_output_format(config, json_output, table_output, csv_output)
 
-    if output_format == "table":
+    if output_format == "csv":
+        if isinstance(response, dict):
+            print_csv([response])
+        else:
+            print_csv(response)
+    elif output_format == "table":
         if isinstance(response, dict):
             _print_table([response])
         else:
@@ -544,6 +551,7 @@ def list_event_attributes(
     event_id: int = typer.Argument(..., help="Event ID"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
 ):
     """List attributes of an event.
 
@@ -551,6 +559,7 @@ def list_event_attributes(
         misp-cli events attributes 1234
         misp-cli events attributes 1234 --json
         misp-cli events attributes 1234 --table
+        misp-cli events attributes 1234 --csv
     """
     from misp_cli.cli.app import get_app
 
@@ -560,11 +569,13 @@ def list_event_attributes(
 
     response = client.get_sync(f"/events/view/{event_id}", params={"includeAttributes": 1})
 
-    output_format = _get_output_format(config, json_output, table_output)
+    output_format = _get_output_format(config, json_output, table_output, csv_output)
     event = response.get("Event", response)
     attributes = event.get("Attribute", [])
 
-    if output_format == "table":
+    if output_format == "csv":
+        print_csv(attributes)
+    elif output_format == "table":
         _print_table(attributes)
     else:
         print_json(attributes)
