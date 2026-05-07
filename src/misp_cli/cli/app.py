@@ -215,9 +215,14 @@ def config_command(
             typer.echo(f"Failed to set default profile: {e}", err=True)
             raise typer.Exit(2)
 
+    if not show and not validate:
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
+
     app = get_app()
 
     if show:
+        typer.echo(f"Config file: {app.config_manager.config_path}")
         typer.echo(f"Default profile: {app.config.default_profile}")
         typer.echo(f"Available profiles: {', '.join(app.config.profiles.keys())}")
         for name, profile in app.config.profiles.items():
