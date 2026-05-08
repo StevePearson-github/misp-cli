@@ -132,6 +132,8 @@ def list_users(
 def show_user(
     user_id: int = typer.Argument(..., help="User ID to show"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
 ):
     """Show details of a specific user."""
     from misp_cli.cli.app import get_app
@@ -142,13 +144,15 @@ def show_user(
 
     response = client.get_sync(f"/users/view/{user_id}")
 
-    if config.output_format == "json" or json_output:
-        print_json(response)
+    output_format = get_output_format(config, json_output, table_output, csv_output)
+    if output_format == "csv":
+        data = [response] if isinstance(response, dict) else response
+        print_csv(data)
+    elif output_format == "table":
+        data = [response] if isinstance(response, dict) else response
+        print_table(data)
     else:
-        if isinstance(response, dict):
-            print_table([response])
-        else:
-            print_json(response)
+        print_json(response)
 
 
 @users_app.command("current")
