@@ -288,7 +288,7 @@ def search_attributes(
     config = app.profile
     client = app.client
 
-    data: dict[str, Any] = {}
+    data: dict[str, Any] = {"returnFormat": "json"}
     if value:
         data["value"] = value
     if type:
@@ -306,23 +306,15 @@ def search_attributes(
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
 
-    # Unwrap nested Attribute structure: [{'Attribute': {...}}, ...] -> [{...}, ...]
-    raw_attributes = response.get("attributes", response.get("data", []))
-    if raw_attributes and isinstance(raw_attributes, list):
-        # Check if each item is wrapped in "Attribute" key
-        if all(isinstance(item, dict) and "Attribute" in item for item in raw_attributes):
-            attributes = [item["Attribute"] for item in raw_attributes]
-        else:
-            attributes = raw_attributes
-    else:
-        attributes = raw_attributes
+    # restSearch returns {"response": {"Attribute": [...]}}
+    raw_attributes = response.get("response", {}).get("Attribute", [])
 
     if output_format == "csv":
-        print_csv(attributes)
+        print_csv(raw_attributes)
     elif output_format == "table":
-        _print_table(attributes)
+        _print_table(raw_attributes)
     else:
-        print_json(attributes)
+        print_json(raw_attributes)
 
 
 @attributes_app.command("types")

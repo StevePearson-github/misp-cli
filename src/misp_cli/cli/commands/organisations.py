@@ -36,6 +36,7 @@ def organisations_callback(
 def list_organisations(
     limit: int = typer.Option(50, "-l", "--limit", help="Maximum number of organisations"),
     page: int = typer.Option(1, "-p", "--page", help="Page number"),
+    count: bool = typer.Option(False, "--count", help="Return only the count of organisations"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
@@ -73,6 +74,13 @@ def list_organisations(
     # Extract Organisation data if wrapped
     if orgs and isinstance(orgs[0], dict) and "Organisation" in orgs[0]:
         orgs = [item["Organisation"] for item in orgs]
+
+    if count is True:
+        if json_output or output_format == "json":
+            print_json({"count": len(orgs)})
+        else:
+            typer.echo(str(len(orgs)))
+        return
 
     if output_format == "csv":
         print_csv(orgs)
