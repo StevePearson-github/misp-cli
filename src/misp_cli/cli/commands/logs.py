@@ -49,6 +49,7 @@ def list_logs(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
+    count: bool = typer.Option(False, "--count", help="Return only the count of log entries"),
 ):
     """List system logs."""
     from misp_cli.cli.app import get_app
@@ -90,6 +91,9 @@ def list_logs(
     output_format = get_output_format(config, json_output, table_output, csv_output)
     logs = unwrap_nested_data(response, "Log")
 
+    if count:
+        print_json({"count": len(logs)})
+        return
     if output_format == "csv":
         print_csv(logs)
     elif output_format == "table":
@@ -105,6 +109,7 @@ def search_logs(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
+    count: bool = typer.Option(False, "--count", help="Return only the count of log entries"),
 ):
     """Search system logs."""
     from misp_cli.cli.app import get_app
@@ -123,6 +128,9 @@ def search_logs(
     output_format = get_output_format(config, json_output, table_output, csv_output)
     logs = unwrap_nested_data(response, "Log")
 
+    if count:
+        print_json({"count": len(logs)})
+        return
     if output_format == "csv":
         print_csv(logs)
     elif output_format == "table":
@@ -138,6 +146,7 @@ def user_logs(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
+    count: bool = typer.Option(False, "--count", help="Return only the count of log entries"),
 ):
     """Get logs for a specific user."""
     from misp_cli.cli.app import get_app
@@ -146,16 +155,20 @@ def user_logs(
     config = app.profile
     client = app.client
 
-    params: dict[str, Any] = {
-        "user_id": user_id,
+    data: dict[str, Any] = {
+        "model": "User",
+        "model_id": user_id,
         "limit": limit,
     }
 
-    response = client.get_sync(f"/logs/user/{user_id}", params=params)
+    response = client.post_sync("/logs/index/sort:Log.id/direction:desc", data=data)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     logs = unwrap_nested_data(response, "Log")
 
+    if count:
+        print_json({"count": len(logs)})
+        return
     if output_format == "csv":
         print_csv(logs)
     elif output_format == "table":
@@ -170,6 +183,7 @@ def event_logs(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
+    count: bool = typer.Option(False, "--count", help="Return only the count of log entries"),
 ):
     """Get logs for a specific event."""
     from misp_cli.cli.app import get_app
@@ -178,11 +192,19 @@ def event_logs(
     config = app.profile
     client = app.client
 
-    response = client.get_sync(f"/logs/event/{event_id}")
+    data: dict[str, Any] = {
+        "model": "Event",
+        "model_id": event_id,
+    }
+
+    response = client.post_sync("/logs/index/sort:Log.id/direction:desc", data=data)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     logs = unwrap_nested_data(response, "Log")
 
+    if count:
+        print_json({"count": len(logs)})
+        return
     if output_format == "csv":
         print_csv(logs)
     elif output_format == "table":
@@ -198,6 +220,7 @@ def logs_by_date(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
+    count: bool = typer.Option(False, "--count", help="Return only the count of log entries"),
 ):
     """Get logs for a specific date."""
     from misp_cli.cli.app import get_app
@@ -222,6 +245,9 @@ def logs_by_date(
     output_format = get_output_format(config, json_output, table_output, csv_output)
     logs = unwrap_nested_data(response, "Log")
 
+    if count:
+        print_json({"count": len(logs)})
+        return
     if output_format == "csv":
         print_csv(logs)
     elif output_format == "table":

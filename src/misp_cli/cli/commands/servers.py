@@ -69,6 +69,8 @@ def list_servers(
 def show_server(
     server_id: int = typer.Argument(..., help="Server ID to show"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
+    csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
 ):
     """Show details of a specific server."""
     from misp_cli.cli.app import get_app
@@ -77,15 +79,25 @@ def show_server(
     config = app.profile
     client = app.client
 
-    response = client.get_sync(f"/servers/view/{server_id}")
+    response = client.get_sync("/servers/index")
 
-    if config.output_format == "json" or json_output:
-        print_json(response)
+    servers = response if isinstance(response, list) else response.get("servers", response.get("data", []))
+    server = next(
+        (s for s in servers if str(s.get("Server", s).get("id", "")) == str(server_id)),
+        None,
+    )
+
+    if server is None:
+        typer.echo(f"Error: Server {server_id} not found", err=True)
+        raise typer.Exit(1)
+
+    output_format = get_output_format(config, json_output, table_output, csv_output)
+    if output_format == "csv":
+        print_csv([server])
+    elif output_format == "table":
+        print_table([server])
     else:
-        if isinstance(response, dict):
-            print_table([response])
-        else:
-            print_json(response)
+        print_json(server)
 
 
 @servers_app.command("create")
