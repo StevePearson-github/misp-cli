@@ -52,7 +52,7 @@ htmlcov/
 
 # Project-specific
 .misp-cli.conf
-.claude/
+.claude/settings.local.json
 
 # Troubleshooting sessions (internal documentation)
 docs/troubleshooting_sessions/

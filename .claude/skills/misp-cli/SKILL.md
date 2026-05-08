@@ -102,6 +102,7 @@ misp-cli version    # Show the connected MISP server version
 ```bash
 misp-cli events list                              # List events (default: 50, sorted by timestamp desc)
 misp-cli events list --limit 10 --page 2
+misp-cli events list --limit 0                    # Remove limit, return all events
 misp-cli events list --search "ransomware"
 misp-cli events list --org "ACME Corp"
 misp-cli events list --from 2024-01-01 --to 2024-03-19
