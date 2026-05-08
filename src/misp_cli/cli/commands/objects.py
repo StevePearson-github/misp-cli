@@ -122,14 +122,16 @@ def add_object(
     client = app.client
 
     data: dict[str, Any] = {
-        "name": object_name,
-        "template_id": template_id,
-        "comment": comment or "",
+        "Object": {
+            "name": object_name,
+            "template_id": template_id,
+            "comment": comment or "",
+        }
     }
     if attributes:
-        data["attributes"] = json.loads(attributes)
+        data["Attribute"] = json.loads(attributes)
 
-    response = client.post_sync(f"/objects/add/{event_id}", data={"Object": data})
+    response = client.post_sync(f"/objects/add/{event_id}", data=data)
 
     if config.output_format == "json" or json_output:
         print_json(response)

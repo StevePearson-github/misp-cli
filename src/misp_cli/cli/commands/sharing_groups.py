@@ -189,9 +189,7 @@ def add_organization(
     config = app.profile
     client = app.client
 
-    response = client.post_sync(
-        f"/sharing_groups/addOrg/{sharing_group_id}", data={"Organisation": {"id": org_id}}
-    )
+    response = client.get_sync(f"/sharing_groups/addOrg/{sharing_group_id}/{org_id}")
 
     if config.output_format == "json" or json_output:
         print_json(response)
@@ -212,9 +210,7 @@ def remove_organization(
     config = app.profile
     client = app.client
 
-    response = client.post_sync(
-        f"/sharing_groups/removeOrg/{sharing_group_id}", data={"Organisation": {"id": org_id}}
-    )
+    response = client.get_sync(f"/sharing_groups/removeOrg/{sharing_group_id}/{org_id}")
 
     if config.output_format == "json" or json_output:
         print_json(response)
@@ -235,9 +231,7 @@ def add_server(
     config = app.profile
     client = app.client
 
-    response = client.post_sync(
-        f"/sharing_groups/addServer/{sharing_group_id}", data={"Server": {"id": server_id}}
-    )
+    response = client.get_sync(f"/sharing_groups/addServer/{sharing_group_id}/{server_id}")
 
     if config.output_format == "json" or json_output:
         print_json(response)
@@ -258,9 +252,7 @@ def remove_server(
     config = app.profile
     client = app.client
 
-    response = client.post_sync(
-        f"/sharing_groups/removeServer/{sharing_group_id}", data={"Server": {"id": server_id}}
-    )
+    response = client.get_sync(f"/sharing_groups/removeServer/{sharing_group_id}/{server_id}")
 
     if config.output_format == "json" or json_output:
         print_json(response)

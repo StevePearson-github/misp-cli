@@ -177,7 +177,7 @@ def show_cluster(
     config = app.profile
     client = app.client
 
-    response = client.get_sync(f"/galaxies/cluster/{cluster_id}")
+    response = client.get_sync(f"/galaxy_clusters/view/{cluster_id}")
 
     if config.output_format == "json" or json_output:
         print_json(response)

@@ -46,14 +46,11 @@ def list_news(
     config = app.profile
     client = app.client
 
-    params: dict[str, Any] = {
-        "limit": limit,
-    }
-
-    response = client.get_sync("/news/index", params=params)
+    response = client.get_sync("/news/index")
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
-    news_items = response.get("news", response.get("data", []))
+    raw = response if isinstance(response, list) else response.get("news", response.get("data", []))
+    news_items = raw[:limit] if isinstance(raw, list) else raw
 
     if output_format == "csv":
         print_csv(news_items)
@@ -75,15 +72,18 @@ def show_news(
     config = app.profile
     client = app.client
 
-    response = client.get_sync(f"/news/view/{news_id}")
+    response = client.get_sync("/news/index")
+    raw = response if isinstance(response, list) else response.get("news", response.get("data", []))
+    item = next((n for n in raw if str(n.get("id")) == str(news_id)), None)
+
+    if item is None:
+        typer.echo(f"Error: News item {news_id} not found", err=True)
+        raise typer.Exit(1)
 
     if config.output_format == "json" or json_output:
-        print_json(response)
+        print_json(item)
     else:
-        if isinstance(response, dict):
-            print_table([response])
-        else:
-            print_json(response)
+        print_table([item])
 
 
 @news_app.command("create")
@@ -167,43 +167,3 @@ def delete_news(
         print_json(response)
     else:
         typer.echo(f"News item {news_id} deleted successfully")
-
-
-@news_app.command("publish")
-def publish_news(
-    news_id: int = typer.Argument(..., help="News ID to publish"),
-    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
-):
-    """Publish a news item."""
-    from misp_cli.cli.app import get_app
-
-    app = get_app()
-    config = app.profile
-    client = app.client
-
-    response = client.post_sync(f"/news/publish/{news_id}")
-
-    if config.output_format == "json" or json_output:
-        print_json(response)
-    else:
-        typer.echo(f"News item {news_id} published successfully")
-
-
-@news_app.command("unpublish")
-def unpublish_news(
-    news_id: int = typer.Argument(..., help="News ID to unpublish"),
-    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
-):
-    """Unpublish a news item."""
-    from misp_cli.cli.app import get_app
-
-    app = get_app()
-    config = app.profile
-    client = app.client
-
-    response = client.post_sync(f"/news/unpublish/{news_id}")
-
-    if config.output_format == "json" or json_output:
-        print_json(response)
-    else:
-        typer.echo(f"News item {news_id} unpublished")
