@@ -151,11 +151,14 @@ def list_elements(
     config = app.profile
     client = app.client
 
-    response = client.get_sync(f"/galaxies/view/{galaxy_id}", params={"elements": 1})
+    response = client.post_sync("/galaxy_clusters/index", data={"galaxy_id": galaxy_id})
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
-    galaxy = response.get("Galaxy", response)
-    elements = galaxy.get("GalaxyCluster", [])
+    raw = response.get("GalaxyCluster", response.get("galaxy_clusters", response.get("data", [])))
+    if isinstance(raw, list) and raw and isinstance(raw[0], dict) and "GalaxyCluster" in raw[0]:
+        elements = [item["GalaxyCluster"] for item in raw]
+    else:
+        elements = raw if isinstance(raw, list) else []
 
     if output_format == "csv":
         print_csv(elements)
@@ -202,7 +205,7 @@ def search_galaxies(
     config = app.profile
     client = app.client
 
-    response = client.get_sync("/galaxies/index", params={"search": term})
+    response = client.post_sync("/galaxies/index", data={"searchall": term})
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
 

@@ -140,6 +140,31 @@ def list_events(
     config = app.profile
     client = app.client
 
+    # When only a count is needed, use returnFormat=count for an accurate total
+    if count is True:
+        count_data: dict[str, Any] = {"returnFormat": "count"}
+        if search:
+            count_data["search"] = search
+        if org:
+            count_data["org"] = org
+        if last:
+            count_data["last"] = last
+        if from_date:
+            count_data["from"] = from_date
+        if to_date:
+            count_data["to"] = to_date
+        if date:
+            count_data["date"] = date
+        if tag:
+            count_data["tag"] = tag
+        count_response = client.post_sync("/events/restSearch", data=count_data)
+        total_count = count_response.get("count", 0)
+        if json_output or format_option == "json":
+            print_json({"count": total_count})
+        else:
+            typer.echo(str(total_count))
+        raise typer.Exit()
+
     # Build query params similar to logs command
     params: dict[str, Any] = {}
     if limit:
@@ -512,6 +537,17 @@ def search_events(
     if publish_timestamp:
         data["publish_timestamp"] = publish_timestamp
 
+    if count is True:
+        count_response = client.post_sync(
+            "/events/restSearch", data={**data, "returnFormat": "count"}
+        )
+        total_count = count_response.get("count", 0)
+        if json_output or format_option == "json":
+            print_json({"count": total_count})
+        else:
+            typer.echo(str(total_count))
+        raise typer.Exit()
+
     response = client.post_sync("/events/restSearch", data=data)
 
     output_format = _get_output_format(config, json_output, table_output, csv_output, format_option)
@@ -526,17 +562,6 @@ def search_events(
             events = raw_events
     else:
         events = raw_events
-
-    # Get pagination info from response
-    total_count = response.get("total", len(events))
-
-    # Handle --count flag: return only the count
-    if count is True:
-        if json_output or format_option == "json":
-            print_json({"count": total_count})
-        else:
-            typer.echo(str(total_count))
-        raise typer.Exit()
 
     if output_format == "csv":
         print_csv(events)

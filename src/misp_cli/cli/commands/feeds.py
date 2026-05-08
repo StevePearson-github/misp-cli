@@ -104,6 +104,9 @@ def list_feeds(
     else:
         feeds = raw_feeds
 
+    if enabled_only:
+        feeds = [f for f in feeds if f.get("enabled") in (True, 1, "1")]
+
     if not quiet:
         typer.echo(f"Found {len(feeds)} feed(s)")
 

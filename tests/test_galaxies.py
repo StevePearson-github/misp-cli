@@ -119,16 +119,13 @@ class TestListElements:
     """Tests for list_elements command."""
 
     def test_list_elements_json_output(self):
-        """Test listing galaxy elements with JSON output."""
+        """Test listing galaxy elements via galaxy_clusters/index."""
         mock_app, mock_config, mock_client = setup_mock_app()
-        mock_client.get_sync.return_value = {
-            "Galaxy": {
-                "id": 1,
-                "GalaxyCluster": [
-                    {"id": 1, "name": "Cluster 1"},
-                    {"id": 2, "name": "Cluster 2"}
-                ]
-            }
+        mock_client.post_sync.return_value = {
+            "GalaxyCluster": [
+                {"id": 1, "value": "Cluster 1"},
+                {"id": 2, "value": "Cluster 2"}
+            ]
         }
 
         with patch("misp_cli.cli.app.get_app", return_value=mock_app):
@@ -136,7 +133,9 @@ class TestListElements:
                 galaxy_id=1, json_output=True, table_output=False, csv_output=False
             )
 
-            mock_client.get_sync.assert_called_once_with("/galaxies/view/1", params={"elements": 1})
+            mock_client.post_sync.assert_called_once_with(
+                "/galaxy_clusters/index", data={"galaxy_id": 1}
+            )
 
 
 class TestShowCluster:
@@ -159,9 +158,9 @@ class TestSearchGalaxies:
     """Tests for search_galaxies command."""
 
     def test_search_galaxies_basic(self):
-        """Test searching galaxies."""
+        """Test searching galaxies uses POST with searchall."""
         mock_app, mock_config, mock_client = setup_mock_app()
-        mock_client.get_sync.return_value = {
+        mock_client.post_sync.return_value = {
             "galaxies": [{"id": 1, "name": "ransomware"}]
         }
 
@@ -171,9 +170,10 @@ class TestSearchGalaxies:
                 json_output=True, table_output=False, csv_output=False
             )
 
-            call_args = mock_client.get_sync.call_args
+            mock_client.post_sync.assert_called_once()
+            call_args = mock_client.post_sync.call_args
             assert call_args[0][0] == "/galaxies/index"
-            assert call_args[1]["params"]["search"] == "ransomware"
+            assert call_args[1]["data"]["searchall"] == "ransomware"
 
 
 class TestAttachCluster:

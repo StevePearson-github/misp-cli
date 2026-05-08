@@ -67,11 +67,10 @@ class TestTagsCommands:
             mock_client.get_sync.assert_called_once_with("/tags/view/1")
 
     def test_search_tags(self):
-        """Test searching for tags by name."""
-        import urllib.parse
+        """Test searching for tags by name using substring search."""
         mock_app, mock_config, mock_client = setup_mock_app()
         mock_client.get_sync.return_value = {
-            "Tag": [{"id": 1, "name": "test-tag", "color": "#0088cc"}]
+            "Tag": [{"id": 1, "name": "test-tag", "colour": "#0088cc"}]
         }
 
         with patch("misp_cli.cli.app.get_app", return_value=mock_app):
@@ -79,9 +78,18 @@ class TestTagsCommands:
 
             mock_client.get_sync.assert_called_once()
             call_args = mock_client.get_sync.call_args
-            # Search term should be in the path, URL-encoded
-            expected_path = f"/tags/search/{urllib.parse.quote('test', safe='')}"
-            assert call_args[0][0] == expected_path
+            assert call_args[0][0] == "/tags/index/searchall:test"
+
+    def test_search_tags_url_encodes_term(self):
+        """Test that special characters in search term are URL-encoded."""
+        mock_app, mock_config, mock_client = setup_mock_app()
+        mock_client.get_sync.return_value = {"Tag": []}
+
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app):
+            search_tags(name="tlp:white", json_output=True, table_output=False)
+
+            call_args = mock_client.get_sync.call_args
+            assert "tlp%3Awhite" in call_args[0][0]
 
     def test_create_tag(self):
         """Test creating a new tag."""
@@ -103,7 +111,7 @@ class TestTagsCommands:
             call_args = mock_client.post_sync.call_args
             assert "/tags/add" in call_args[0][0]
             assert call_args[1]["data"]["Tag"]["name"] == "new-tag"
-            assert call_args[1]["data"]["Tag"]["color"] == "#00ff00"
+            assert call_args[1]["data"]["Tag"]["colour"] == "#00ff00"
             assert call_args[1]["data"]["Tag"]["exportable"] is True
 
     def test_edit_tag(self):
@@ -118,7 +126,7 @@ class TestTagsCommands:
             call_args = mock_client.post_sync.call_args
             assert "/tags/edit/1" in call_args[0][0]
             assert call_args[1]["data"]["Tag"]["name"] == "updated-tag"
-            assert call_args[1]["data"]["Tag"]["color"] == "#ff0000"
+            assert call_args[1]["data"]["Tag"]["colour"] == "#ff0000"
 
     def test_delete_tag_with_force(self):
         """Test deleting a tag with force flag."""
@@ -140,8 +148,7 @@ class TestTagsCommands:
 
             mock_client.post_sync.assert_called_once()
             call_args = mock_client.post_sync.call_args
-            assert "/events/addTag/1" in call_args[0][0]
-            assert call_args[1]["data"]["Tag"]["id"] == 2
+            assert call_args[0][0] == "/events/addTag/1/2"
 
     def test_attach_tag_to_attribute(self):
         """Test attaching a tag to an attribute."""
@@ -153,8 +160,7 @@ class TestTagsCommands:
 
             mock_client.post_sync.assert_called_once()
             call_args = mock_client.post_sync.call_args
-            assert "/attributes/addTag/3" in call_args[0][0]
-            assert call_args[1]["data"]["Tag"]["id"] == 2
+            assert call_args[0][0] == "/attributes/addTag/3/2"
 
     def test_detach_tag_from_event(self):
         """Test detaching a tag from an event."""
@@ -169,7 +175,7 @@ class TestTagsCommands:
             assert "/events/removeTag/1" in call_args[0][0]
 
     def test_list_event_tags(self):
-        """Test listing tags for an event."""
+        """Test listing tags for an event via Tag key."""
         mock_app, mock_config, mock_client = setup_mock_app()
         mock_client.get_sync.return_value = {
             "Event": {
@@ -186,6 +192,23 @@ class TestTagsCommands:
             list_event_tags(event_id=1, json_output=True, table_output=False)
 
             mock_client.get_sync.assert_called_once_with("/events/view/1", params={"tags": 1})
+
+    def test_list_event_tags_via_event_tag(self):
+        """Test that tags are extracted from EventTag when Tag key is empty."""
+        mock_app, mock_config, mock_client = setup_mock_app()
+        mock_client.get_sync.return_value = {
+            "Event": {
+                "id": 1,
+                "Tag": [],
+                "EventTag": [
+                    {"id": 10, "tag_id": 1, "Tag": {"id": 1, "name": "tlp:green"}},
+                    {"id": 11, "tag_id": 2, "Tag": {"id": 2, "name": "threat-intel"}},
+                ]
+            }
+        }
+
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app):
+            list_event_tags(event_id=1, json_output=True, table_output=False)
 
     def test_list_tags_error_handling(self):
         """Test error handling when listing tags fails."""

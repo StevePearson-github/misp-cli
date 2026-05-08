@@ -65,30 +65,6 @@ def list_event_blocklists(
         print_json(blocklists)
 
 
-@event_blocklists_app.command("add")
-def add_event_blocklist(
-    event_info: str = typer.Option(..., "-i", "--info", help="Event info to block"),
-    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
-):
-    """Add an event to the blocklist by event info."""
-    from misp_cli.cli.app import get_app
-
-    app = get_app()
-    config = app.profile
-    client = app.client
-
-    data: dict[str, Any] = {
-        "event_info": event_info,
-    }
-
-    response = client.post_sync("/eventBlocklists/add", data={"EventBlocklist": data})
-
-    if config.output_format == "json" or json_output:
-        print_json(response)
-    else:
-        blocklist_id = response.get("EventBlocklist", {}).get("id", "Unknown")
-        typer.echo(f"Event blocklist entry created: {blocklist_id}")
-
 
 @event_blocklists_app.command("add-uuid")
 def add_event_blocklist_uuid(
@@ -114,30 +90,6 @@ def add_event_blocklist_uuid(
         blocklist_id = response.get("EventBlocklist", {}).get("id", "Unknown")
         typer.echo(f"Event blocklist entry created: {blocklist_id}")
 
-
-@event_blocklists_app.command("add-id")
-def add_event_blocklist_id(
-    event_id: int = typer.Argument(..., help="Event ID to block"),
-    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
-):
-    """Add an event to the blocklist by event ID."""
-    from misp_cli.cli.app import get_app
-
-    app = get_app()
-    config = app.profile
-    client = app.client
-
-    data: dict[str, Any] = {
-        "event_id": event_id,
-    }
-
-    response = client.post_sync("/eventBlocklists/add", data={"EventBlocklist": data})
-
-    if config.output_format == "json" or json_output:
-        print_json(response)
-    else:
-        blocklist_id = response.get("EventBlocklist", {}).get("id", "Unknown")
-        typer.echo(f"Event blocklist entry created: {blocklist_id}")
 
 
 @event_blocklists_app.command("remove")
