@@ -69,6 +69,7 @@ def _print_table_users(data: list[dict], columns: list[str] | None = None) -> No
 def list_users(
     limit: int = typer.Option(50, "-l", "--limit", help="Maximum number of users"),
     page: int = typer.Option(1, "-p", "--page", help="Page number"),
+    count: bool = typer.Option(False, "--count", help="Return only the count of users"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
@@ -108,6 +109,13 @@ def list_users(
     # Client-side limit fallback when API ignores pagination
     if limit and len(users) > limit:
         users = users[:limit]
+
+    if count is True:
+        if json_output or output_format == "json":
+            print_json({"count": len(users)})
+        else:
+            typer.echo(str(len(users)))
+        return
 
     if not quiet:
         typer.echo(f"Found {len(users)} user(s)")
