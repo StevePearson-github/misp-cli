@@ -298,7 +298,6 @@ misp-cli events create --help
 | `servers add` | Add a server connection |
 | `servers edit` | Edit a server |
 | `servers delete` | Remove a server |
-| `servers test` | Test server connection |
 
 ### Galaxy Management
 
@@ -495,9 +494,6 @@ misp-cli version
 
 # List connected servers
 misp-cli servers list --limit 50
-
-# Test server connection
-misp-cli servers test
 
 # Show server details
 misp-cli servers show 1

@@ -218,31 +218,6 @@ def push_to_server(
         typer.echo(f"Pushed events to server {server_id} successfully")
 
 
-@servers_app.command("test")
-def test_server(
-    server_id: int = typer.Argument(..., help="Server ID to test"),
-    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
-):
-    """Test connection to a server."""
-    from misp_cli.cli.app import get_app
-
-    app = get_app()
-    config = app.profile
-    client = app.client
-
-    response = client.get_sync(f"/servers/test/{server_id}")
-
-    if config.output_format == "json" or json_output:
-        print_json(response)
-    else:
-        result = response.get("Server", {})
-        status = result.get("status", "unknown")
-        if status == "OK":
-            typer.echo(f"Server {server_id} test: SUCCESS")
-        else:
-            typer.echo(f"Server {server_id} test: {status}")
-
-
 @servers_app.command("sync")
 def sync_server(
     server_id: int = typer.Argument(..., help="Server ID to sync with"),

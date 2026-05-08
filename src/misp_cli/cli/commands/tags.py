@@ -233,11 +233,9 @@ def attach_tag(
     client = app.client
 
     if attribute_id:
-        response = client.post_sync(
-            f"/attributes/addTag/{attribute_id}", data={"Tag": {"id": tag_id}}
-        )
+        response = client.post_sync(f"/attributes/addTag/{attribute_id}/{tag_id}")
     else:
-        response = client.post_sync(f"/events/addTag/{event_id}", data={"Tag": {"id": tag_id}})
+        response = client.post_sync(f"/events/addTag/{event_id}/{tag_id}")
 
     if config.output_format == "json" or json_output:
         print_json(response)
@@ -262,11 +260,9 @@ def detach_tag(
     client = app.client
 
     if attribute_id:
-        response = client.post_sync(
-            f"/attributes/removeTag/{attribute_id}", data={"Tag": {"id": tag_id}}
-        )
+        response = client.post_sync(f"/attributes/removeTag/{attribute_id}/{tag_id}")
     else:
-        response = client.post_sync(f"/events/removeTag/{event_id}", data={"Tag": {"id": tag_id}})
+        response = client.post_sync(f"/events/removeTag/{event_id}/{tag_id}")
 
     if config.output_format == "json" or json_output:
         print_json(response)
