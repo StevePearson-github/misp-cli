@@ -152,7 +152,7 @@ class TestShowCluster:
         with patch("misp_cli.cli.app.get_app", return_value=mock_app):
             show_cluster(cluster_id=1, json_output=True)
 
-            mock_client.get_sync.assert_called_once_with("/galaxies/cluster/1")
+            mock_client.get_sync.assert_called_once_with("/galaxy_clusters/view/1")
 
 
 class TestSearchGalaxies:

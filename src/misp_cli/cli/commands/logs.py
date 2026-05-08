@@ -118,12 +118,12 @@ def search_logs(
     config = app.profile
     client = app.client
 
-    params: dict[str, Any] = {
+    data: dict[str, Any] = {
         "search": query,
         "limit": limit,
     }
 
-    response = client.get_sync("/logs/search", params=params)
+    response = client.post_sync("/logs/index/sort:Log.id/direction:asc", data=data)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     logs = unwrap_nested_data(response, "Log")
@@ -235,12 +235,13 @@ def logs_by_date(
         typer.echo("Error: Date must be in YYYY-MM-DD format", err=True)
         raise typer.Exit(1)
 
-    params: dict[str, Any] = {
-        "date": date_str,
+    data: dict[str, Any] = {
+        "from": date_str,
+        "to": date_str,
         "limit": limit,
     }
 
-    response = client.get_sync("/logs/date", params=params)
+    response = client.post_sync("/logs/index/sort:Log.id/direction:asc", data=data)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     logs = unwrap_nested_data(response, "Log")
