@@ -8,6 +8,12 @@ from rich.table import Table
 
 from misp_cli.core.config import MISPProfile
 
+_TABLE_PRIORITY_COLUMNS = [
+    "id", "name", "info", "title", "value", "type", "category",
+    "date", "timestamp", "published", "status", "distribution", "org", "email",
+]
+_TABLE_MAX_COLUMNS = 8
+
 
 def get_output_format(
     config: MISPProfile,
@@ -52,17 +58,25 @@ def print_table(data: list[dict], columns: list[str] | None = None) -> None:
     # Flatten nested dictionaries
     flattened_data = [MISPCLient.flatten_dict(row) for row in data]
 
-    table = Table(show_header=True, header_style="bold magenta")
-
     if columns:
-        for col in columns:
-            table.add_column(col.replace("_", " ").title())
+        display_columns = list(columns)
     else:
-        for key in flattened_data[0].keys():
-            table.add_column(key.replace("_", " ").title())
+        available = list(flattened_data[0].keys())
+        if len(available) > _TABLE_MAX_COLUMNS:
+            chosen = [c for c in _TABLE_PRIORITY_COLUMNS if c in available][:_TABLE_MAX_COLUMNS]
+            remaining_slots = _TABLE_MAX_COLUMNS - len(chosen)
+            if remaining_slots > 0:
+                chosen += [c for c in available if c not in chosen][:remaining_slots]
+            display_columns = chosen
+        else:
+            display_columns = available
+
+    table = Table(show_header=True, header_style="bold magenta")
+    for col in display_columns:
+        table.add_column(col.replace("_", " ").title())
 
     for item in flattened_data:
-        row = [str(v) if v is not None else "" for v in item.values()]
+        row = [str(item.get(col, "")) if item.get(col) is not None else "" for col in display_columns]
         table.add_row(*row)
 
     console.print(table)

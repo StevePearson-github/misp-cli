@@ -106,10 +106,9 @@ def search_tags(
     config = app.profile
     client = app.client
 
-    # URL encode the search term for the path
     import urllib.parse
     encoded_name = urllib.parse.quote(name, safe="")
-    response = client.get_sync(f"/tags/search/{encoded_name}")
+    response = client.get_sync(f"/tags/index/searchall:{encoded_name}")
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     tags = response.get("Tag", response.get("tags", response.get("data", [])))
@@ -139,7 +138,7 @@ def create_tag(
 
     data: dict[str, Any] = {
         "name": name,
-        "color": color,
+        "colour": color,
         "exportable": exportable,
     }
     if hide_tag:
@@ -174,7 +173,7 @@ def edit_tag(
     if name:
         data["name"] = name
     if color:
-        data["color"] = color
+        data["colour"] = color
     if exportable is not None:
         data["exportable"] = exportable
     if hide_tag is not None:
@@ -288,6 +287,8 @@ def list_event_tags(
     output_format = get_output_format(config, json_output, table_output)
     event = response.get("Event", response)
     tags = event.get("Tag", [])
+    if not tags:
+        tags = [et["Tag"] for et in event.get("EventTag", []) if "Tag" in et]
 
     if output_format == "table":
         print_table(tags)

@@ -73,8 +73,8 @@ class TestListFeeds:
             call_args = mock_client.get_sync.call_args
             assert call_args[1]["params"]["limit"] == 100
 
-    def test_list_feeds_enabled_only(self):
-        """Test listing feeds with enabled_only filter."""
+    def test_list_feeds_enabled_only_sends_param(self):
+        """Test that enabled_only sends the enabled param to the API."""
         mock_app, mock_config, mock_client = setup_mock_app()
         mock_client.get_sync.return_value = {"feeds": []}
 
@@ -86,6 +86,33 @@ class TestListFeeds:
 
             call_args = mock_client.get_sync.call_args
             assert call_args[1]["params"]["enabled"] == 1
+
+    def test_list_feeds_enabled_only_filters_client_side(self):
+        """Test that disabled feeds are removed client-side when --enabled is used."""
+        mock_app, mock_config, mock_client = setup_mock_app()
+        mock_client.get_sync.return_value = {
+            "feeds": [
+                {"id": 1, "name": "Active Feed", "enabled": True},
+                {"id": 2, "name": "Disabled Feed", "enabled": False},
+                {"id": 3, "name": "Another Active", "enabled": True},
+            ]
+        }
+
+        captured = []
+
+        def capture_json(data):
+            captured.append(data)
+
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app), \
+             patch("misp_cli.cli.commands.feeds.print_json", side_effect=capture_json):
+            list_feeds(
+                limit=50, page=1, enabled_only=True,
+                json_output=True, table_output=False, csv_output=False, quiet=True
+            )
+
+        assert len(captured) == 1
+        assert len(captured[0]) == 2
+        assert all(f["enabled"] for f in captured[0])
 
     def test_list_feeds_quiet_mode(self):
         """Test listing feeds with quiet mode."""
