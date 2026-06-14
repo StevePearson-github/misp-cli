@@ -4,7 +4,14 @@ from typing import Any
 
 import typer
 
-from misp_cli.cli.output import get_output_format, print_csv, print_json, print_table
+from misp_cli.cli.output import (
+    COUNT_OPTION,
+    get_output_format,
+    print_count,
+    print_csv,
+    print_json,
+    print_table,
+)
 
 organisations_app = typer.Typer(
     name="organisations",
@@ -36,7 +43,7 @@ def organisations_callback(
 def list_organisations(
     limit: int = typer.Option(50, "-l", "--limit", help="Maximum number of organisations"),
     page: int = typer.Option(1, "-p", "--page", help="Page number"),
-    count: bool = typer.Option(False, "--count", help="Return only the count of organisations"),
+    count: bool = COUNT_OPTION,
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
@@ -56,10 +63,10 @@ def list_organisations(
     config = app.profile
     client = app.client
 
-    params: dict[str, Any] = {
-        "limit": limit,
-        "page": page,
-    }
+    effective_limit = 0 if count is True else limit
+    params: dict[str, Any] = {"page": page}
+    if effective_limit:
+        params["limit"] = effective_limit
 
     response = client.get_sync("/organisations/index/scope:all", params=params)
 
@@ -69,18 +76,16 @@ def list_organisations(
     if isinstance(response, list):
         orgs = response
     else:
-        orgs = response.get("Organisation", response.get("organisations/index/scope:all", response.get("data", [])))
+        orgs = response.get(
+            "Organisation", response.get("organisations/index/scope:all", response.get("data", []))
+        )
 
     # Extract Organisation data if wrapped
     if orgs and isinstance(orgs[0], dict) and "Organisation" in orgs[0]:
         orgs = [item["Organisation"] for item in orgs]
 
     if count is True:
-        if json_output or output_format == "json":
-            print_json({"count": len(orgs)})
-        else:
-            typer.echo(str(len(orgs)))
-        return
+        print_count(orgs, json_output, output_format)
 
     if output_format == "csv":
         print_csv(orgs)

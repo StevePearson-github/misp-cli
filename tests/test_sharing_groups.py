@@ -109,3 +109,25 @@ class TestShowSharingGroup:
             show_sharing_group(sharing_group_id=1, json_output=True)
 
         mock_client.get_sync.assert_called_once_with("/sharing_groups/view/1")
+
+
+class TestListSharingGroupsCount:
+    def test_list_sharing_groups_count(self):
+        """Test that --count returns count and exits without limit in request."""
+        import pytest
+
+        mock_app, mock_config, mock_client = setup_mock_app()
+        mock_client.get_sync.return_value = {
+            "sharing_groups": [{"id": 1, "name": "SG1"}, {"id": 2, "name": "SG2"}]
+        }
+
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app):
+            with pytest.raises(Exception):
+                list_sharing_groups(
+                    limit=50, page=1,
+                    json_output=True, table_output=False, csv_output=False,
+                    count=True
+                )
+
+        call_args = mock_client.get_sync.call_args
+        assert "limit" not in call_args[1]["params"]

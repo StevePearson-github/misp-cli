@@ -170,6 +170,23 @@ class TestAttributesCommands:
 
             mock_client.get_sync.assert_called_once_with("/attributes/describeTypes")
 
+    def test_list_attributes_count(self):
+        """Test that --count returns count and exits without limit in request."""
+        mock_app, mock_config, mock_client = setup_mock_app()
+        mock_client.get_sync.return_value = {
+            "attributes": [{"id": 1, "type": "ip-src", "value": "1.1.1.1", "category": "Network activity"}]
+        }
+
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app):
+            with pytest.raises(Exception):
+                list_attributes(
+                    event_id=None, type=None, category=None, limit=50, page=1,
+                    json_output=True, table_output=False, count=True
+                )
+
+        call_args = mock_client.get_sync.call_args
+        assert "limit" not in call_args[1]["params"]
+
     def test_list_attributes_error_handling(self):
         """Test error handling when listing attributes fails."""
         mock_app, mock_config, mock_client = setup_mock_app()

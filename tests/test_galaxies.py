@@ -217,6 +217,27 @@ class TestDetachCluster:
             assert "/events/detachCluster/1" in call_args[0][0]
 
 
+class TestListGalaxiesCount:
+    """Tests for list_galaxies --count."""
+
+    def test_list_galaxies_count(self):
+        """Test that --count returns count and exits without limit in request."""
+        mock_app, mock_config, mock_client = setup_mock_app()
+        mock_client.post_sync.return_value = {
+            "galaxies": [{"id": 1, "name": "Galaxy 1"}, {"id": 2, "name": "Galaxy 2"}]
+        }
+
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app):
+            with pytest.raises(Exception):
+                list_galaxies(
+                    limit=50, json_output=True, table_output=False, csv_output=False,
+                    quiet=False, count=True
+                )
+
+        call_args = mock_client.post_sync.call_args
+        assert "limit" not in call_args[1]["data"]
+
+
 class TestListEventGalaxies:
     """Tests for list_event_galaxies command."""
 

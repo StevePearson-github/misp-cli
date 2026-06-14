@@ -87,6 +87,7 @@ class MISPCLient:
         # Debug output
         if self.debug:
             import sys
+
             print(f"[DEBUG] {method} {url}", file=sys.stderr)
             if params:
                 print(f"[DEBUG] Params: {params}", file=sys.stderr)
@@ -102,11 +103,11 @@ class MISPCLient:
             )
             return self._handle_response(response)
         except httpx.ConnectError as e:
-            raise MISPConnectionError(f"Connection failed: {e}")
+            raise MISPConnectionError(f"Connection failed: {e}") from e
         except httpx.TimeoutException as e:
-            raise MISPConnectionError(f"Request timed out: {e}")
+            raise MISPConnectionError(f"Request timed out: {e}") from e
         except httpx.HTTPError as e:
-            raise MISPConnectionError(f"HTTP error: {e}")
+            raise MISPConnectionError(f"HTTP error: {e}") from e
 
     async def get(
         self,
@@ -156,7 +157,9 @@ class MISPCLient:
         # Handle error status codes
         if response.status_code >= 400:
             error_type = response_data.get("name", "API Error")
-            message = response_data.get("message", response_data.get("error", f"HTTP {response.status_code}"))
+            message = response_data.get(
+                "message", response_data.get("error", f"HTTP {response.status_code}")
+            )
 
             # Avoid duplicating the error message if name and message are the same
             if error_type == message:

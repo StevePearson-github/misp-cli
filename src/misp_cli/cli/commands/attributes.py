@@ -5,7 +5,7 @@ from typing import Any
 import typer
 from rich.table import Table
 
-from misp_cli.cli.output import get_output_format, print_csv, print_json
+from misp_cli.cli.output import COUNT_OPTION, get_output_format, print_count, print_csv, print_json
 
 attributes_app = typer.Typer(
     name="attributes",
@@ -103,6 +103,7 @@ def list_attributes(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-T", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
+    count: bool = COUNT_OPTION,
 ):
     """List attributes with optional filtering."""
     from misp_cli.cli.app import get_app
@@ -111,10 +112,10 @@ def list_attributes(
     config = app.profile
     client = app.client
 
-    params: dict[str, Any] = {
-        "limit": limit,
-        "page": page,
-    }
+    effective_limit = 0 if count is True else limit
+    params: dict[str, Any] = {"page": page}
+    if effective_limit:
+        params["limit"] = effective_limit
     if event_id:
         params["eventid"] = event_id
     if type:
@@ -142,6 +143,9 @@ def list_attributes(
             attributes = raw_attributes
     else:
         attributes = raw_attributes
+
+    if count is True:
+        print_count(attributes, json_output, output_format)
 
     if output_format == "csv":
         print_csv(attributes)
@@ -280,6 +284,7 @@ def search_attributes(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-T", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
+    count: bool = COUNT_OPTION,
 ):
     """Search for attributes by value (optional) and/or type."""
     from misp_cli.cli.app import get_app
@@ -308,6 +313,9 @@ def search_attributes(
 
     # restSearch returns {"response": {"Attribute": [...]}}
     raw_attributes = response.get("response", {}).get("Attribute", [])
+
+    if count is True:
+        print_count(raw_attributes, json_output, output_format)
 
     if output_format == "csv":
         print_csv(raw_attributes)

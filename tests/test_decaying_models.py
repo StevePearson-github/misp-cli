@@ -204,6 +204,28 @@ class TestExportDecayingModel:
             mock_client.get_sync.assert_called_once_with("/decayingModels/export/1")
 
 
+class TestListDecayingModelsCount:
+    """Tests for list_decaying_models --count."""
+
+    def test_list_decaying_models_count(self):
+        """Test that --count returns count and exits without limit in request."""
+        mock_app, mock_config, mock_client = setup_mock_app()
+        mock_client.get_sync.return_value = {
+            "DecayingModel": [{"id": 1, "name": "Model 1"}, {"id": 2, "name": "Model 2"}]
+        }
+
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app):
+            with pytest.raises(Exception):
+                list_decaying_models(
+                    limit=50, page=1,
+                    json_output=True, table_output=False, csv_output=False,
+                    count=True
+                )
+
+        call_args = mock_client.get_sync.call_args
+        assert "limit" not in call_args[1]["params"]
+
+
 class TestDeleteDecayingModel:
     """Tests for delete_decaying_model command."""
 

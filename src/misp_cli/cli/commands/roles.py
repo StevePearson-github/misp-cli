@@ -3,7 +3,9 @@
 import typer
 
 from misp_cli.cli.output import (
+    COUNT_OPTION,
     get_output_format,
+    print_count,
     print_csv,
     print_json,
     print_table,
@@ -41,6 +43,7 @@ def list_roles(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
+    count: bool = COUNT_OPTION,
 ):
     """List all roles."""
     from misp_cli.cli.app import get_app
@@ -53,6 +56,9 @@ def list_roles(
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     roles = unwrap_nested_data(response, "Role")
+
+    if count is True:
+        print_count(roles, json_output, output_format)
 
     if output_format == "csv":
         print_csv(roles)

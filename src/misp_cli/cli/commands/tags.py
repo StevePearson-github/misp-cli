@@ -4,7 +4,14 @@ from typing import Any
 
 import typer
 
-from misp_cli.cli.output import get_output_format, print_csv, print_json, print_table
+from misp_cli.cli.output import (
+    COUNT_OPTION,
+    get_output_format,
+    print_count,
+    print_csv,
+    print_json,
+    print_table,
+)
 
 tags_app = typer.Typer(
     name="tags",
@@ -39,6 +46,7 @@ def list_tags(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
+    count: bool = COUNT_OPTION,
 ):
     """List all tags."""
     from misp_cli.cli.app import get_app
@@ -47,10 +55,10 @@ def list_tags(
     config = app.profile
     client = app.client
 
-    data: dict[str, Any] = {
-        "limit": limit,
-        "page": page,
-    }
+    effective_limit = 0 if count is True else limit
+    data: dict[str, Any] = {"page": page}
+    if effective_limit:
+        data["limit"] = effective_limit
 
     response = client.post_sync("/tags/index", data=data)
 
@@ -58,8 +66,11 @@ def list_tags(
     tags = response.get("Tag", response.get("tags", response.get("data", [])))
 
     # Client-side limit fallback when API ignores pagination
-    if limit and len(tags) > limit:
-        tags = tags[:limit]
+    if effective_limit and len(tags) > effective_limit:
+        tags = tags[:effective_limit]
+
+    if count is True:
+        print_count(tags, json_output, output_format)
 
     if output_format == "csv":
         print_csv(tags)
@@ -98,6 +109,7 @@ def search_tags(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
+    count: bool = COUNT_OPTION,
 ):
     """Search for tags by name."""
     from misp_cli.cli.app import get_app
@@ -107,11 +119,15 @@ def search_tags(
     client = app.client
 
     import urllib.parse
+
     encoded_name = urllib.parse.quote(name, safe="")
     response = client.get_sync(f"/tags/index/searchall:{encoded_name}")
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     tags = response.get("Tag", response.get("tags", response.get("data", [])))
+
+    if count is True:
+        print_count(tags, json_output, output_format)
 
     if output_format == "csv":
         print_csv(tags)
