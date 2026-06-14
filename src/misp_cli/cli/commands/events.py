@@ -158,7 +158,7 @@ def list_events(
         if tag:
             count_data["tag"] = tag
         count_response = client.post_sync("/events/restSearch", data=count_data)
-        total_count = count_response.get("count", 0)
+        total_count = count_response.get("count", count_response.get("data", 0))
         if json_output or format_option == "json":
             print_json({"count": total_count})
         else:
@@ -541,7 +541,7 @@ def search_events(
         count_response = client.post_sync(
             "/events/restSearch", data={**data, "returnFormat": "count"}
         )
-        total_count = count_response.get("count", 0)
+        total_count = count_response.get("count", count_response.get("data", 0))
         if json_output or format_option == "json":
             print_json({"count": total_count})
         else:
