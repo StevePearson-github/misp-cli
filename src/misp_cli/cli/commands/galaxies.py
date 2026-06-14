@@ -5,7 +5,7 @@ from typing import Any
 import typer
 from rich.table import Table
 
-from misp_cli.cli.output import get_output_format, print_csv, print_json
+from misp_cli.cli.output import COUNT_OPTION, get_output_format, print_count, print_csv, print_json
 
 galaxies_app = typer.Typer(
     name="galaxies",
@@ -72,6 +72,7 @@ def list_galaxies(
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
     quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
+    count: bool = COUNT_OPTION,
 ):
     """List all galaxies."""
     from misp_cli.cli.app import get_app
@@ -80,9 +81,10 @@ def list_galaxies(
     config = app.profile
     client = app.client
 
+    effective_limit = 0 if count is True else limit
     params: dict[str, Any] = {}
-    if limit:
-        params["limit"] = limit
+    if effective_limit:
+        params["limit"] = effective_limit
 
     response = client.post_sync("/galaxies/index", data=params)
 
@@ -100,8 +102,11 @@ def list_galaxies(
         galaxies = raw_galaxies
 
     # Client-side limit fallback when API ignores pagination
-    if limit and len(galaxies) > limit:
-        galaxies = galaxies[:limit]
+    if effective_limit and len(galaxies) > effective_limit:
+        galaxies = galaxies[:effective_limit]
+
+    if count is True:
+        print_count(galaxies, json_output, output_format)
 
     if not quiet:
         typer.echo(f"Found {len(galaxies)} galaxy(ies)")
@@ -197,6 +202,7 @@ def search_galaxies(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
+    count: bool = COUNT_OPTION,
 ):
     """Search galaxies."""
     from misp_cli.cli.app import get_app
@@ -219,6 +225,9 @@ def search_galaxies(
             galaxies = raw_galaxies
     else:
         galaxies = raw_galaxies
+
+    if count is True:
+        print_count(galaxies, json_output, output_format)
 
     if output_format == "csv":
         print_csv(galaxies)

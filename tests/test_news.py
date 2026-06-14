@@ -75,6 +75,19 @@ class TestShowNews:
         assert exc_info.value.exit_code == 1
 
 
+class TestListNewsCount:
+    def test_list_news_count(self):
+        """Test that --count returns count and exits."""
+        mock_app, mock_config, mock_client = setup_mock_app()
+        mock_client.get_sync.return_value = SAMPLE_NEWS
+
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app):
+            with pytest.raises(Exception):
+                list_news(limit=50, json_output=True, table_output=False, csv_output=False, count=True)
+
+        mock_client.get_sync.assert_called_once_with("/news/index")
+
+
 class TestCreateNews:
     def test_create_news_wraps_in_news_key(self):
         mock_app, mock_config, mock_client = setup_mock_app()

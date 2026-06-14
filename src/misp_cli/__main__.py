@@ -1,6 +1,7 @@
 """Main entry point for MISP CLI."""
 
 import sys
+
 from misp_cli.cli.app import app
 
 

@@ -6,7 +6,9 @@ from typing import Any
 import typer
 
 from misp_cli.cli.output import (
+    COUNT_OPTION,
     get_output_format,
+    print_count,
     print_csv,
     print_json,
     print_table,
@@ -44,12 +46,16 @@ def list_logs(
     limit: int = typer.Option(100, "-l", "--limit", help="Maximum number of log entries"),
     page: int = typer.Option(1, "-p", "--page", help="Page number"),
     email: str | None = typer.Option(None, "-e", "--email", help="Filter by email address"),
-    model: str | None = typer.Option(None, "--model", help="Filter by model (e.g., User, Event, Attribute)"),
-    action: str | None = typer.Option(None, "--action", help="Filter by action (e.g., login, logout, add, edit)"),
+    model: str | None = typer.Option(
+        None, "--model", help="Filter by model (e.g., User, Event, Attribute)"
+    ),
+    action: str | None = typer.Option(
+        None, "--action", help="Filter by action (e.g., login, logout, add, edit)"
+    ),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
-    count: bool = typer.Option(False, "--count", help="Return only the count of log entries"),
+    count: bool = COUNT_OPTION,
 ):
     """List system logs."""
     from misp_cli.cli.app import get_app
@@ -58,42 +64,34 @@ def list_logs(
     config = app.profile
     client = app.client
 
+    effective_limit = 0 if count is True else limit
+
     # Use POST to /admin/logs when any filter that requires it is provided
     if email or model or action:
         data: dict[str, Any] = {
-            "limit": limit,
             "page": page,
             "sort": "Log.id",
             "direction": "asc",
         }
+        if effective_limit:
+            data["limit"] = effective_limit
         if email:
             data["email"] = email
         if model:
             data["model"] = model
         if action:
             data["action"] = action
-        #response = client.post_sync("/admin/logs/sort:Log.id/direction:asc", data=data)
         response = client.post_sync("/logs/index/sort:Log.id/direction:asc", data=data)
-        #response = client.post_sync("/admin/logs", data=data)
-        #response = client.post_sync("/logs/index", data=data)
     else:
-        params: dict[str, Any] = {
-            "limit": limit,
-            "page": page,
-        }
-        #response = client.get_sync(f"/logs/index/limit:{limit}/sort:Log.id/direction:asc", params=params)
-        #response = client.get_sync(f"/logs/index/limit:{limit}/sort:Log.id/direction:asc")
-        #response = client.get_sync(f"/logs/index/limit:{limit}", params=params)
-        #response = client.get_sync(f"logs/index/limit:{limit}")
-        #response = client.get_sync(f"/logs/index/sort:Log.id/direction:desc", params=params)
-        response = client.get_sync(f"/logs/admin_index/limit:{limit}/sort:Log.id/direction:desc")
+        response = client.get_sync(
+            f"/logs/admin_index/limit:{effective_limit}/sort:Log.id/direction:desc"
+        )
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     logs = unwrap_nested_data(response, "Log")
 
-    if count:
-        print_json({"count": len(logs)})
-        return
+    if count is True:
+        print_count(logs, json_output, output_format)
     if output_format == "csv":
         print_csv(logs)
     elif output_format == "table":
@@ -109,7 +107,7 @@ def search_logs(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
-    count: bool = typer.Option(False, "--count", help="Return only the count of log entries"),
+    count: bool = COUNT_OPTION,
 ):
     """Search system logs."""
     from misp_cli.cli.app import get_app
@@ -118,19 +116,18 @@ def search_logs(
     config = app.profile
     client = app.client
 
-    data: dict[str, Any] = {
-        "search": query,
-        "limit": limit,
-    }
+    effective_limit = 0 if count is True else limit
+    data: dict[str, Any] = {"search": query}
+    if effective_limit:
+        data["limit"] = effective_limit
 
     response = client.post_sync("/logs/index/sort:Log.id/direction:asc", data=data)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     logs = unwrap_nested_data(response, "Log")
 
-    if count:
-        print_json({"count": len(logs)})
-        return
+    if count is True:
+        print_count(logs, json_output, output_format)
     if output_format == "csv":
         print_csv(logs)
     elif output_format == "table":
@@ -146,7 +143,7 @@ def user_logs(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
-    count: bool = typer.Option(False, "--count", help="Return only the count of log entries"),
+    count: bool = COUNT_OPTION,
 ):
     """Get logs for a specific user."""
     from misp_cli.cli.app import get_app
@@ -155,20 +152,18 @@ def user_logs(
     config = app.profile
     client = app.client
 
-    data: dict[str, Any] = {
-        "model": "User",
-        "model_id": user_id,
-        "limit": limit,
-    }
+    effective_limit = 0 if count is True else limit
+    data: dict[str, Any] = {"model": "User", "model_id": user_id}
+    if effective_limit:
+        data["limit"] = effective_limit
 
     response = client.post_sync("/logs/index/sort:Log.id/direction:desc", data=data)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     logs = unwrap_nested_data(response, "Log")
 
-    if count:
-        print_json({"count": len(logs)})
-        return
+    if count is True:
+        print_count(logs, json_output, output_format)
     if output_format == "csv":
         print_csv(logs)
     elif output_format == "table":
@@ -183,7 +178,7 @@ def event_logs(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
-    count: bool = typer.Option(False, "--count", help="Return only the count of log entries"),
+    count: bool = COUNT_OPTION,
 ):
     """Get logs for a specific event."""
     from misp_cli.cli.app import get_app
@@ -192,19 +187,15 @@ def event_logs(
     config = app.profile
     client = app.client
 
-    data: dict[str, Any] = {
-        "model": "Event",
-        "model_id": event_id,
-    }
+    data: dict[str, Any] = {"model": "Event", "model_id": event_id}
 
     response = client.post_sync("/logs/index/sort:Log.id/direction:desc", data=data)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     logs = unwrap_nested_data(response, "Log")
 
-    if count:
-        print_json({"count": len(logs)})
-        return
+    if count is True:
+        print_count(logs, json_output, output_format)
     if output_format == "csv":
         print_csv(logs)
     elif output_format == "table":
@@ -220,7 +211,7 @@ def logs_by_date(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
-    count: bool = typer.Option(False, "--count", help="Return only the count of log entries"),
+    count: bool = COUNT_OPTION,
 ):
     """Get logs for a specific date."""
     from misp_cli.cli.app import get_app
@@ -233,22 +224,20 @@ def logs_by_date(
         datetime.strptime(date_str, "%Y-%m-%d")
     except ValueError:
         typer.echo("Error: Date must be in YYYY-MM-DD format", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
-    data: dict[str, Any] = {
-        "from": date_str,
-        "to": date_str,
-        "limit": limit,
-    }
+    effective_limit = 0 if count is True else limit
+    data: dict[str, Any] = {"from": date_str, "to": date_str}
+    if effective_limit:
+        data["limit"] = effective_limit
 
     response = client.post_sync("/logs/index/sort:Log.id/direction:asc", data=data)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     logs = unwrap_nested_data(response, "Log")
 
-    if count:
-        print_json({"count": len(logs)})
-        return
+    if count is True:
+        print_count(logs, json_output, output_format)
     if output_format == "csv":
         print_csv(logs)
     elif output_format == "table":

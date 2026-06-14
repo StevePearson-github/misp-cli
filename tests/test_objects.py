@@ -91,6 +91,29 @@ class TestListObjects:
         assert mock_client.get_sync.call_args[0][0] == "/objects/restSearch"
 
 
+class TestListObjectsCount:
+    def test_list_objects_count(self):
+        """Test that --count returns count and exits without limit in request."""
+        import pytest
+
+        mock_app, mock_config, mock_client = setup_mock_app()
+        mock_client.get_sync.return_value = {
+            "objects": [{"id": 1, "name": "domain-ip"}, {"id": 2, "name": "ip-port"}]
+        }
+
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app):
+            with pytest.raises(Exception):
+                list_objects(
+                    event_id=None, limit=50, page=1,
+                    from_date=None, to_date=None, date=None,
+                    json_output=True, table_output=False, csv_output=False,
+                    count=True
+                )
+
+        call_args = mock_client.get_sync.call_args
+        assert "limit" not in call_args[1]["params"]
+
+
 class TestShowObject:
     def test_show_object_json_output(self):
         mock_app, mock_config, mock_client = setup_mock_app()

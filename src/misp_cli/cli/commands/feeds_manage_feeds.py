@@ -4,7 +4,13 @@ from typing import Any
 
 import typer
 
-from misp_cli.cli.output import get_output_format, print_csv, print_json, print_table, unwrap_nested_data
+from misp_cli.cli.output import (
+    get_output_format,
+    print_csv,
+    print_json,
+    print_table,
+    unwrap_nested_data,
+)
 
 manage_feeds_app = typer.Typer(
     name="feeds",
@@ -303,10 +309,10 @@ def import_feed(
             feed_data = json.load(f)
     except FileNotFoundError:
         typer.echo(f"Error: File {file_path} not found", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
     except json.JSONDecodeError:
         typer.echo(f"Error: Invalid JSON in {file_path}", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     response = client.post_sync("/feeds/import", data={"Feed": feed_data})
 

@@ -4,7 +4,14 @@ from typing import Any
 
 import typer
 
-from misp_cli.cli.output import get_output_format, print_csv, print_json, print_table
+from misp_cli.cli.output import (
+    COUNT_OPTION,
+    get_output_format,
+    print_count,
+    print_csv,
+    print_json,
+    print_table,
+)
 
 servers_app = typer.Typer(
     name="servers",
@@ -39,6 +46,7 @@ def list_servers(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
+    count: bool = COUNT_OPTION,
 ):
     """List all connected servers."""
     from misp_cli.cli.app import get_app
@@ -47,15 +55,18 @@ def list_servers(
     config = app.profile
     client = app.client
 
-    params: dict[str, Any] = {
-        "limit": limit,
-        "page": page,
-    }
+    effective_limit = 0 if count is True else limit
+    params: dict[str, Any] = {"page": page}
+    if effective_limit:
+        params["limit"] = effective_limit
 
     response = client.get_sync("/servers/index", params=params)
 
     output_format = get_output_format(config, json_output, table_output, csv_output)
     servers = response.get("servers", response.get("data", []))
+
+    if count is True:
+        print_count(servers, json_output, output_format)
 
     if output_format == "csv":
         print_csv(servers)
@@ -81,7 +92,11 @@ def show_server(
 
     response = client.get_sync("/servers/index")
 
-    servers = response if isinstance(response, list) else response.get("servers", response.get("data", []))
+    servers = (
+        response
+        if isinstance(response, list)
+        else response.get("servers", response.get("data", []))
+    )
     server = next(
         (s for s in servers if str(s.get("Server", s).get("id", "")) == str(server_id)),
         None,

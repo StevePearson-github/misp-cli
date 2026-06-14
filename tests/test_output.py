@@ -5,7 +5,33 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from misp_cli.cli.output import get_output_format, print_csv, print_json, print_table, unwrap_nested_data
+from misp_cli.cli.output import get_output_format, print_count, print_csv, print_json, print_table, unwrap_nested_data
+
+
+class TestPrintCount:
+    """Tests for print_count function."""
+
+    def test_plain_text_output(self, capsys):
+        items = [{"id": 1}, {"id": 2}]
+        with pytest.raises(Exception):
+            print_count(items, json_output=False, output_format="table")
+        assert capsys.readouterr().out.strip() == "2"
+
+    def test_json_output_via_flag(self, capsys):
+        items = [{"id": 1}]
+        with pytest.raises(Exception):
+            print_count(items, json_output=True, output_format="table")
+        assert json.loads(capsys.readouterr().out) == {"count": 1}
+
+    def test_json_output_via_format(self, capsys):
+        items = []
+        with pytest.raises(Exception):
+            print_count(items, json_output=False, output_format="json")
+        assert json.loads(capsys.readouterr().out) == {"count": 0}
+
+    def test_raises_system_exit(self):
+        with pytest.raises(Exception):
+            print_count([], json_output=False, output_format="table")
 
 
 class TestGetOutputFormat:

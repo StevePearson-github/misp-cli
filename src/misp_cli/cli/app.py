@@ -116,7 +116,7 @@ def callback(
         is_eager=True,
     ),
 ):
-    f"""MISP CLI - Command-line interface for MISP (v{__version__})."""
+    """MISP CLI - Command-line interface for MISP."""
     # Show help if requested
     if help:
         typer.echo(ctx.get_help())
@@ -146,7 +146,7 @@ def callback(
     except MISPConfigurationError as e:
         # Show configuration error and exit
         typer.echo(f"Configuration error: {e.message}", err=True)
-        raise typer.Exit(2)
+        raise typer.Exit(2) from None
 
 
 @app.command("version")
@@ -196,7 +196,7 @@ def config_command(
             return
         except Exception as e:
             typer.echo(f"Failed to create config: {e}", err=True)
-            raise typer.Exit(2)
+            raise typer.Exit(2) from None
 
     # Handle set-default separately as it needs to work with any profile
     if set_default is not None:
@@ -207,13 +207,13 @@ def config_command(
             return
         except FileNotFoundError as e:
             typer.echo(f"Configuration error: {e}", err=True)
-            raise typer.Exit(2)
+            raise typer.Exit(2) from None
         except ValueError as e:
             typer.echo(f"Error: {e}", err=True)
-            raise typer.Exit(2)
+            raise typer.Exit(2) from None
         except Exception as e:
             typer.echo(f"Failed to set default profile: {e}", err=True)
-            raise typer.Exit(2)
+            raise typer.Exit(2) from None
 
     if not show and not validate:
         typer.echo(ctx.get_help())
@@ -238,7 +238,7 @@ def config_command(
             typer.echo("Configuration is valid")
         except MISPConfigurationError as e:
             typer.echo(f"Configuration error: {e.message}", err=True)
-            raise typer.Exit(2)
+            raise typer.Exit(2) from None
 
 
 def main():

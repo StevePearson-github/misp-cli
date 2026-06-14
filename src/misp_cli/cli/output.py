@@ -9,8 +9,20 @@ from rich.table import Table
 from misp_cli.core.config import MISPProfile
 
 _TABLE_PRIORITY_COLUMNS = [
-    "id", "name", "info", "title", "value", "type", "category",
-    "date", "timestamp", "published", "status", "distribution", "org", "email",
+    "id",
+    "name",
+    "info",
+    "title",
+    "value",
+    "type",
+    "category",
+    "date",
+    "timestamp",
+    "published",
+    "status",
+    "distribution",
+    "org",
+    "email",
 ]
 _TABLE_MAX_COLUMNS = 8
 
@@ -34,6 +46,7 @@ def get_output_format(
 def print_csv(data: list[dict], columns: list[str] | None = None) -> None:
     """Print data as CSV."""
     from misp_cli.core.client import MISPCLient
+
     csv_output = MISPCLient.format_as_csv(data, columns)
     if csv_output:
         typer.echo(csv_output)
@@ -76,10 +89,24 @@ def print_table(data: list[dict], columns: list[str] | None = None) -> None:
         table.add_column(col.replace("_", " ").title())
 
     for item in flattened_data:
-        row = [str(item.get(col, "")) if item.get(col) is not None else "" for col in display_columns]
+        row = [
+            str(item.get(col, "")) if item.get(col) is not None else "" for col in display_columns
+        ]
         table.add_row(*row)
 
     console.print(table)
+
+
+COUNT_OPTION = typer.Option(False, "--count", help="Return count instead of listing results")
+
+
+def print_count(items: list[Any], json_output: bool, output_format: str) -> None:
+    """Print count of items and exit. Caller must ensure items is the full (unlimited) list."""
+    if json_output or output_format == "json":
+        print_json({"count": len(items)})
+    else:
+        typer.echo(str(len(items)))
+    raise typer.Exit()
 
 
 def unwrap_nested_data(

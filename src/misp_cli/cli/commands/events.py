@@ -254,16 +254,6 @@ def list_events(
     # Get pagination info from response
     total_count = response.get("total", len(events))
 
-    # Handle --count flag: return only the count
-    # Note: count defaults to typer.Option(False), so check for explicit True
-    # to avoid truthy OptionInfo objects triggering this block
-    if count is True:
-        if json_output or format_option == "json":
-            print_json({"count": total_count})
-        else:
-            typer.echo(str(total_count))
-        raise typer.Exit()
-
     if not quiet:
         typer.echo(f"Showing {len(events)} of {total_count} event(s)")
 
@@ -538,9 +528,9 @@ def search_events(
         data["publish_timestamp"] = publish_timestamp
 
     if count is True:
-        count_response = client.post_sync(
-            "/events/restSearch", data={**data, "returnFormat": "count"}
-        )
+        count_data = {k: v for k, v in data.items() if k not in ("limit", "page")}
+        count_data["returnFormat"] = "count"
+        count_response = client.post_sync("/events/restSearch", data=count_data)
         total_count = count_response.get("count", count_response.get("data", 0))
         if json_output or format_option == "json":
             print_json({"count": total_count})

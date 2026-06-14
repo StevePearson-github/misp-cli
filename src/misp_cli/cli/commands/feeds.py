@@ -5,7 +5,7 @@ from typing import Any
 import typer
 from rich.table import Table
 
-from misp_cli.cli.output import get_output_format, print_csv, print_json
+from misp_cli.cli.output import COUNT_OPTION, get_output_format, print_count, print_csv, print_json
 
 feeds_app = typer.Typer(
     name="feeds",
@@ -74,6 +74,7 @@ def list_feeds(
     table_output: bool = typer.Option(False, "-t", "--table", help="Output as table"),
     csv_output: bool = typer.Option(False, "--csv", help="Output as CSV"),
     quiet: bool = typer.Option(False, "-q", "--quiet", help="Suppress non-essential output"),
+    count: bool = COUNT_OPTION,
 ):
     """List all feeds."""
     from misp_cli.cli.app import get_app
@@ -82,10 +83,10 @@ def list_feeds(
     config = app.profile
     client = app.client
 
-    params: dict[str, Any] = {
-        "limit": limit,
-        "page": page,
-    }
+    effective_limit = 0 if count is True else limit
+    params: dict[str, Any] = {"page": page}
+    if effective_limit:
+        params["limit"] = effective_limit
     if enabled_only:
         params["enabled"] = 1
 
@@ -106,6 +107,9 @@ def list_feeds(
 
     if enabled_only:
         feeds = [f for f in feeds if f.get("enabled") in (True, 1, "1")]
+
+    if count is True:
+        print_count(feeds, json_output, output_format)
 
     if not quiet:
         typer.echo(f"Found {len(feeds)} feed(s)")

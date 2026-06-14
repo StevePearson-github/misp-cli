@@ -210,6 +210,29 @@ class TestTagsCommands:
         with patch("misp_cli.cli.app.get_app", return_value=mock_app):
             list_event_tags(event_id=1, json_output=True, table_output=False)
 
+    def test_list_tags_count(self):
+        """Test that --count returns count and exits."""
+        mock_app, mock_config, mock_client = setup_mock_app()
+        mock_client.post_sync.return_value = {
+            "Tag": [{"id": 1, "name": "t1"}, {"id": 2, "name": "t2"}]
+        }
+
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app):
+            with pytest.raises(Exception):
+                list_tags(limit=50, page=1, json_output=True, table_output=False, csv_output=False, count=True)
+
+        call_args = mock_client.post_sync.call_args
+        assert "limit" not in call_args[1]["data"]
+
+    def test_search_tags_count(self):
+        """Test that --count on search returns count and exits."""
+        mock_app, mock_config, mock_client = setup_mock_app()
+        mock_client.get_sync.return_value = {"Tag": [{"id": 1, "name": "malware"}]}
+
+        with patch("misp_cli.cli.app.get_app", return_value=mock_app):
+            with pytest.raises(Exception):
+                search_tags(name="malware", json_output=True, table_output=False, csv_output=False, count=True)
+
     def test_list_tags_error_handling(self):
         """Test error handling when listing tags fails."""
         mock_app, mock_config, mock_client = setup_mock_app()
