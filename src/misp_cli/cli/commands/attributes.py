@@ -145,7 +145,7 @@ def list_attributes(
         attributes = raw_attributes
 
     if count is True:
-        print_count(attributes, json_output, output_format)
+        print_count(attributes, json_output)
 
     if output_format == "csv":
         print_csv(attributes)
@@ -315,7 +315,7 @@ def search_attributes(
     raw_attributes = response.get("response", {}).get("Attribute", [])
 
     if count is True:
-        print_count(raw_attributes, json_output, output_format)
+        print_count(raw_attributes, json_output)
 
     if output_format == "csv":
         print_csv(raw_attributes)

@@ -109,9 +109,9 @@ def list_feeds(
         feeds = [f for f in feeds if f.get("enabled") in (True, 1, "1")]
 
     if count is True:
-        print_count(feeds, json_output, output_format)
+        print_count(feeds, json_output)
 
-    if not quiet:
+    if not quiet and output_format not in ("json", "csv"):
         typer.echo(f"Found {len(feeds)} feed(s)")
 
     if output_format == "csv":

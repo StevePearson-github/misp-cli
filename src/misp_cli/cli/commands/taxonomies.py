@@ -64,7 +64,7 @@ def list_taxonomies(
     taxonomies = response.get("taxonomies", response.get("data", []))
 
     if count is True:
-        print_count(taxonomies, json_output, output_format)
+        print_count(taxonomies, json_output)
 
     if output_format == "csv":
         print_csv(taxonomies)

@@ -100,9 +100,9 @@ def print_table(data: list[dict], columns: list[str] | None = None) -> None:
 COUNT_OPTION = typer.Option(False, "--count", help="Return count instead of listing results")
 
 
-def print_count(items: list[Any], json_output: bool, output_format: str) -> None:
+def print_count(items: list[Any], json_output: bool) -> None:
     """Print count of items and exit. Caller must ensure items is the full (unlimited) list."""
-    if json_output or output_format == "json":
+    if json_output:
         print_json({"count": len(items)})
     else:
         typer.echo(str(len(items)))

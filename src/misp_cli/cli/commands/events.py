@@ -254,7 +254,7 @@ def list_events(
     # Get pagination info from response
     total_count = response.get("total", len(events))
 
-    if not quiet:
+    if not quiet and output_format not in ("json", "csv"):
         typer.echo(f"Showing {len(events)} of {total_count} event(s)")
 
     if output_format == "csv":
@@ -749,7 +749,7 @@ def get_latest_events(
     # Determine output format
     output_format = _get_output_format(config, json_output, table_output, csv_output, format_option)
 
-    if not quiet:
+    if not quiet and output_format not in ("json", "csv"):
         typer.echo(f"\nFound {len(all_events)} event(s)")
 
     # Prepare simplified event data for display

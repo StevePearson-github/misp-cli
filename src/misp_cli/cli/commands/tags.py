@@ -70,7 +70,7 @@ def list_tags(
         tags = tags[:effective_limit]
 
     if count is True:
-        print_count(tags, json_output, output_format)
+        print_count(tags, json_output)
 
     if output_format == "csv":
         print_csv(tags)
@@ -127,7 +127,7 @@ def search_tags(
     tags = response.get("Tag", response.get("tags", response.get("data", [])))
 
     if count is True:
-        print_count(tags, json_output, output_format)
+        print_count(tags, json_output)
 
     if output_format == "csv":
         print_csv(tags)

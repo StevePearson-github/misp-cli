@@ -57,7 +57,7 @@ def list_object_templates(
     templates = response.get("objectTemplates", response.get("data", []))
 
     if count is True:
-        print_count(templates, json_output, output_format)
+        print_count(templates, json_output)
 
     if output_format == "csv":
         print_csv(templates)

@@ -85,7 +85,7 @@ def list_organisations(
         orgs = [item["Organisation"] for item in orgs]
 
     if count is True:
-        print_count(orgs, json_output, output_format)
+        print_count(orgs, json_output)
 
     if output_format == "csv":
         print_csv(orgs)

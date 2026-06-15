@@ -81,7 +81,7 @@ def list_galaxies(
     config = app.profile
     client = app.client
 
-    effective_limit = 0 if count is True else limit
+    effective_limit = 50000 if count is True else limit
     params: dict[str, Any] = {}
     if effective_limit:
         params["limit"] = effective_limit
@@ -91,7 +91,7 @@ def list_galaxies(
     output_format = get_output_format(config, json_output, table_output, csv_output)
 
     # Unwrap nested Galaxy structure: [{'Galaxy': {...}}, ...] -> [{...}, ...]
-    raw_galaxies = response.get("galaxies", response.get("data", []))
+    raw_galaxies = response if isinstance(response, list) else response.get("galaxies", response.get("data", []))
     if raw_galaxies and isinstance(raw_galaxies, list):
         # Check if each item is wrapped in "Galaxy" key
         if all(isinstance(item, dict) and "Galaxy" in item for item in raw_galaxies):
@@ -102,13 +102,13 @@ def list_galaxies(
         galaxies = raw_galaxies
 
     # Client-side limit fallback when API ignores pagination
-    if effective_limit and len(galaxies) > effective_limit:
+    if effective_limit and count is not True and len(galaxies) > effective_limit:
         galaxies = galaxies[:effective_limit]
 
     if count is True:
-        print_count(galaxies, json_output, output_format)
+        print_count(galaxies, json_output)
 
-    if not quiet:
+    if not quiet and output_format not in ("json", "csv"):
         typer.echo(f"Found {len(galaxies)} galaxy(ies)")
 
     if output_format == "csv":
@@ -227,7 +227,7 @@ def search_galaxies(
         galaxies = raw_galaxies
 
     if count is True:
-        print_count(galaxies, json_output, output_format)
+        print_count(galaxies, json_output)
 
     if output_format == "csv":
         print_csv(galaxies)

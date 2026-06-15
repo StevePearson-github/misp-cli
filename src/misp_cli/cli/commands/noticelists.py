@@ -57,7 +57,7 @@ def list_noticelists(
     noticelists = response.get("noticelists", response.get("data", []))
 
     if count is True:
-        print_count(noticelists, json_output, output_format)
+        print_count(noticelists, json_output)
 
     if output_format == "csv":
         print_csv(noticelists)
