@@ -66,7 +66,7 @@ def list_servers(
     servers = response.get("servers", response.get("data", []))
 
     if count is True:
-        print_count(servers, json_output, output_format)
+        print_count(servers, json_output)
 
     if output_format == "csv":
         print_csv(servers)

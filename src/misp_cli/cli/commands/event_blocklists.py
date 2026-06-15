@@ -66,7 +66,7 @@ def list_event_blocklists(
     blocklists = response.get("eventBlocklists", response.get("data", []))
 
     if count is True:
-        print_count(blocklists, json_output, output_format)
+        print_count(blocklists, json_output)
 
     if output_format == "csv":
         print_csv(blocklists)

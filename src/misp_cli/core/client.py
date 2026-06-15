@@ -63,7 +63,7 @@ class MISPCLient:
         method: str,
         endpoint: str,
         params: dict[str, Any] | None = None,
-        data: dict[str, Any] | None = None,
+        data: list[Any] | dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Make an API request to MISP.
@@ -120,7 +120,7 @@ class MISPCLient:
     async def post(
         self,
         endpoint: str,
-        data: dict[str, Any] | None = None,
+        data: list[Any] | dict[str, Any] | None = None,
         params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """POST request helper."""
@@ -129,7 +129,7 @@ class MISPCLient:
     async def put(
         self,
         endpoint: str,
-        data: dict[str, Any] | None = None,
+        data: list[Any] | dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """PUT request helper."""
         return await self.request("PUT", endpoint, data=data)
@@ -262,7 +262,7 @@ class MISPCLient:
     def post_sync(
         self,
         endpoint: str,
-        data: dict[str, Any] | None = None,
+        data: list[Any] | dict[str, Any] | None = None,
         params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Synchronous POST request helper."""
@@ -271,7 +271,7 @@ class MISPCLient:
     def put_sync(
         self,
         endpoint: str,
-        data: dict[str, Any] | None = None,
+        data: list[Any] | dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Synchronous PUT request helper."""
         return asyncio.run(self.put(endpoint, data=data))

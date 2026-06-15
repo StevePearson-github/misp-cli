@@ -57,7 +57,7 @@ def list_warninglists(
     warninglists = response.get("warninglists", response.get("data", []))
 
     if count is True:
-        print_count(warninglists, json_output, output_format)
+        print_count(warninglists, json_output)
 
     if output_format == "csv":
         print_csv(warninglists)
@@ -162,16 +162,20 @@ def check_warninglist(
     config = app.profile
     client = app.client
 
-    response = client.get_sync("/warninglists/check", params={"value": value})
+    response = client.post_sync("/warninglists/checkValue", data=[value])
+
+    # MISP returns {value: [warninglist_matches]} for hits, or wraps [] as {"data": []} for no hits
+    matches = {k: v for k, v in response.items() if k not in ("data",)} if isinstance(response, dict) else {}
 
     if config.output_format == "json" or json_output:
-        print_json(response)
+        print_json(matches)
     else:
-        matches = response.get("matches", [])
-        if matches:
-            typer.echo(f"Value '{value}' matches {len(matches)} warninglist(s):")
-            for match in matches:
-                typer.echo(f"  - {match.get('name', 'Unknown')}")
+        wl_entries = matches.get(value, []) if matches else []
+        if wl_entries:
+            typer.echo(f"Value '{value}' matches {len(wl_entries)} warninglist(s):")
+            for wl in wl_entries:
+                name = wl.get("name", wl.get("id", "unknown")) if isinstance(wl, dict) else str(wl)
+                typer.echo(f"  - {name}")
         else:
             typer.echo(f"Value '{value}' does not match any warninglist")
 

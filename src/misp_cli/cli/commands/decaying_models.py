@@ -66,7 +66,7 @@ def list_decaying_models(
     models = response.get("DecayingModel", response.get("data", []))
 
     if count is True:
-        print_count(models, json_output, output_format)
+        print_count(models, json_output)
 
     if output_format == "csv":
         print_csv(models)

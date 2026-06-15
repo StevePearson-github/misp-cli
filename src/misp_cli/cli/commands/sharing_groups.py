@@ -66,7 +66,7 @@ def list_sharing_groups(
     sharing_groups = response.get("sharing_groups", response.get("data", []))
 
     if count is True:
-        print_count(sharing_groups, json_output, output_format)
+        print_count(sharing_groups, json_output)
 
     if output_format == "csv":
         print_csv(sharing_groups)

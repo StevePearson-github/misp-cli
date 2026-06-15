@@ -62,7 +62,7 @@ def list_news(
     news_items = raw[:effective_limit] if (isinstance(raw, list) and effective_limit) else raw
 
     if count is True:
-        print_count(news_items, json_output, output_format)
+        print_count(news_items, json_output)
 
     if output_format == "csv":
         print_csv(news_items)

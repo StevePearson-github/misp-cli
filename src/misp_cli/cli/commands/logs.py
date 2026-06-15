@@ -91,7 +91,7 @@ def list_logs(
     logs = unwrap_nested_data(response, "Log")
 
     if count is True:
-        print_count(logs, json_output, output_format)
+        print_count(logs, json_output)
     if output_format == "csv":
         print_csv(logs)
     elif output_format == "table":
@@ -127,7 +127,7 @@ def search_logs(
     logs = unwrap_nested_data(response, "Log")
 
     if count is True:
-        print_count(logs, json_output, output_format)
+        print_count(logs, json_output)
     if output_format == "csv":
         print_csv(logs)
     elif output_format == "table":
@@ -163,7 +163,7 @@ def user_logs(
     logs = unwrap_nested_data(response, "Log")
 
     if count is True:
-        print_count(logs, json_output, output_format)
+        print_count(logs, json_output)
     if output_format == "csv":
         print_csv(logs)
     elif output_format == "table":
@@ -195,7 +195,7 @@ def event_logs(
     logs = unwrap_nested_data(response, "Log")
 
     if count is True:
-        print_count(logs, json_output, output_format)
+        print_count(logs, json_output)
     if output_format == "csv":
         print_csv(logs)
     elif output_format == "table":
@@ -237,7 +237,7 @@ def logs_by_date(
     logs = unwrap_nested_data(response, "Log")
 
     if count is True:
-        print_count(logs, json_output, output_format)
+        print_count(logs, json_output)
     if output_format == "csv":
         print_csv(logs)
     elif output_format == "table":

@@ -118,9 +118,9 @@ def list_users(
         users = users[:effective_limit]
 
     if count is True:
-        print_count(users, json_output, output_format)
+        print_count(users, json_output)
 
-    if not quiet:
+    if not quiet and output_format not in ("json", "csv"):
         typer.echo(f"Found {len(users)} user(s)")
 
     if output_format == "csv":

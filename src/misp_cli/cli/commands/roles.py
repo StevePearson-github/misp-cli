@@ -58,7 +58,7 @@ def list_roles(
     roles = unwrap_nested_data(response, "Role")
 
     if count is True:
-        print_count(roles, json_output, output_format)
+        print_count(roles, json_output)
 
     if output_format == "csv":
         print_csv(roles)
