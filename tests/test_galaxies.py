@@ -235,7 +235,8 @@ class TestListGalaxiesCount:
                 )
 
         call_args = mock_client.post_sync.call_args
-        assert "limit" not in call_args[1]["data"]
+        # --count fetches the full list, so the request uses a large limit, not the user's
+        assert call_args[1]["data"]["limit"] == 50000
 
 
 class TestListEventGalaxies:
