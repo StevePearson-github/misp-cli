@@ -14,24 +14,23 @@ class TestPrintCount:
     def test_plain_text_output(self, capsys):
         items = [{"id": 1}, {"id": 2}]
         with pytest.raises(Exception):
-            print_count(items, json_output=False, output_format="table")
+            print_count(items, json_output=False)
         assert capsys.readouterr().out.strip() == "2"
 
     def test_json_output_via_flag(self, capsys):
         items = [{"id": 1}]
         with pytest.raises(Exception):
-            print_count(items, json_output=True, output_format="table")
+            print_count(items, json_output=True)
         assert json.loads(capsys.readouterr().out) == {"count": 1}
 
-    def test_json_output_via_format(self, capsys):
-        items = []
+    def test_plain_text_output_empty(self, capsys):
         with pytest.raises(Exception):
-            print_count(items, json_output=False, output_format="json")
-        assert json.loads(capsys.readouterr().out) == {"count": 0}
+            print_count([], json_output=False)
+        assert capsys.readouterr().out.strip() == "0"
 
     def test_raises_system_exit(self):
         with pytest.raises(Exception):
-            print_count([], json_output=False, output_format="table")
+            print_count([], json_output=False)
 
 
 class TestGetOutputFormat:

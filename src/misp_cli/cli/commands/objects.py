@@ -132,28 +132,23 @@ def add_object(
     config = app.profile
     client = app.client
 
-    import asyncio
-
     attr_list = json.loads(attributes) if attributes else None
 
-    async def _add(c: Any) -> dict[str, Any]:
-        template_data = await c.get(f"/objectTemplates/view/{template_id}")
-        template_info = template_data.get("ObjectTemplate", template_data)
-        obj_data: dict[str, Any] = {
-            "Object": {
-                "name": object_name,
-                "template_id": template_id,
-                "template_uuid": template_info.get("uuid", ""),
-                "template_version": template_info.get("version", 1),
-                "meta-category": template_info.get("meta-category", ""),
-                "comment": comment or "",
-            }
+    template_data = client.get_sync(f"/objectTemplates/view/{template_id}")
+    template_info = template_data.get("ObjectTemplate", template_data)
+    obj_data: dict[str, Any] = {
+        "Object": {
+            "name": object_name,
+            "template_id": template_id,
+            "template_uuid": template_info.get("uuid", ""),
+            "template_version": template_info.get("version", 1),
+            "meta-category": template_info.get("meta-category", ""),
+            "comment": comment or "",
         }
-        if attr_list:
-            obj_data["Attribute"] = attr_list
-        return await c.post(f"/objects/add/{event_id}", data=obj_data)
-
-    response = asyncio.run(_add(client))
+    }
+    if attr_list:
+        obj_data["Attribute"] = attr_list
+    response = client.post_sync(f"/objects/add/{event_id}", data=obj_data)
 
     if config.output_format == "json" or json_output:
         print_json(response)

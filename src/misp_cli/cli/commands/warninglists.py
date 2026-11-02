@@ -165,7 +165,11 @@ def check_warninglist(
     response = client.post_sync("/warninglists/checkValue", data=[value])
 
     # MISP returns {value: [warninglist_matches]} for hits, or wraps [] as {"data": []} for no hits
-    matches = {k: v for k, v in response.items() if k not in ("data",)} if isinstance(response, dict) else {}
+    matches = (
+        {k: v for k, v in response.items() if k not in ("data",)}
+        if isinstance(response, dict)
+        else {}
+    )
 
     if config.output_format == "json" or json_output:
         print_json(matches)

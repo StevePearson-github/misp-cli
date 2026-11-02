@@ -91,7 +91,11 @@ def list_galaxies(
     output_format = get_output_format(config, json_output, table_output, csv_output)
 
     # Unwrap nested Galaxy structure: [{'Galaxy': {...}}, ...] -> [{...}, ...]
-    raw_galaxies = response if isinstance(response, list) else response.get("galaxies", response.get("data", []))
+    raw_galaxies = (
+        response
+        if isinstance(response, list)
+        else response.get("galaxies", response.get("data", []))
+    )
     if raw_galaxies and isinstance(raw_galaxies, list):
         # Check if each item is wrapped in "Galaxy" key
         if all(isinstance(item, dict) and "Galaxy" in item for item in raw_galaxies):
