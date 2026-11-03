@@ -39,9 +39,10 @@ Python 3.11+
 ├── typer              # CLI framework with auto-generated docs
 ├── rich               # Terminal output formatting
 ├── httpx              # Async HTTP client with OpenAPI support
-├── pydantic           # Data validation and settings management
-├── python-dotenv      # Environment variable support
-└── stix2              # STIX/TAXII format support (optional)
+└── pydantic           # Data validation and settings management
+
+Optional extras:
+└── stix2              # STIX/TAXII format support (planned; pip install misp-cli[stix])
 ```
 
 ---
@@ -120,7 +121,6 @@ misp-cli/
 │   ├── generate_openapi.py           # Generate endpoint mappings from OpenAPI
 │   └── lint_check.sh
 ├── .misp-cli.conf                   # Example config file
-├── .env.example                     # Environment template
 └── .gitignore
 ```
 
