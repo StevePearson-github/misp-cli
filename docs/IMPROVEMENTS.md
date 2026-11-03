@@ -33,7 +33,7 @@ misp-cli stix pull --collection malware --output malware.stix2
 ```
 
 **Dependencies:**
-- `stix2` library (already listed in architecture)
+- `stix2` library (optional extra: `pip install misp-cli[stix]`, declared under `[project.optional-dependencies]`)
 - TAXII client library for push/pull operations
 
 **Related API Endpoints:**
@@ -1011,10 +1011,9 @@ custom_patterns =
 - `typer` (CLI framework)
 - `rich` (terminal output)
 - `pydantic` (validation)
-- `python-dotenv` (environment)
 
 ### Required for Import/Export
-- `stix2` (STIX support)
+- `stix2` (STIX support; optional extra `misp-cli[stix]`)
 - `pyyaml` (YAML support)
 
 ### Optional for Advanced Features
